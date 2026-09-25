@@ -1,0 +1,1591 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-25T11:23:49.164Z",
+  "settings": {
+    "name": "STRATA",
+    "legalName": "Strata Studio Ltd.",
+    "tagline": "Built in layers. Worn with intent.",
+    "description": "Premium streetwear and modern essentials, cut in heavyweight fabrics and made in small runs. Designed in London.",
+    "url": "https://strata.studio",
+    "email": "hello@strata.studio",
+    "social": "@strata.studio",
+    "socialLinks": {
+      "instagram": "https://instagram.com/",
+      "tiktok": "https://tiktok.com/",
+      "pinterest": "https://pinterest.com/",
+      "youtube": "https://youtube.com/"
+    },
+    "location": {
+      "line1": "Studio 04, 118 Kingsland Road",
+      "line2": "London E2 8DP",
+      "est": "Est. 2021"
+    },
+    "hours": {
+      "days": "Monday – Friday",
+      "time": "10 AM – 6 PM"
+    },
+    "announcement": {
+      "text": "Free worldwide shipping on orders over $150",
+      "cta": "Shop new arrivals",
+      "href": "#/shop?new=1"
+    },
+    "currency": "USD",
+    "locale": "en-US",
+    "freeShippingThreshold": 150,
+    "shippingRates": [
+      {
+        "id": "standard",
+        "label": "Standard",
+        "eta": "4–7 business days",
+        "price": 12
+      },
+      {
+        "id": "express",
+        "label": "Express",
+        "eta": "1–3 business days",
+        "price": 28
+      }
+    ]
+  },
+  "theme": {
+    "accent": "#B23A1E",
+    "bg": "#F3F1EC",
+    "ink": "#121211",
+    "muted": "#7A776F",
+    "dark": "#121211",
+    "monochrome": true
+  },
+  "pages": {
+    "home": {
+      "heroKicker": "AW26",
+      "heroKicker2": "Campaign 01",
+      "heroMeta": "Form / Function / Identity",
+      "heroTitle": "Built for\nthe way\nyou move.",
+      "heroSub": "Modern essentials designed with intention. Explore the latest collection.",
+      "heroImage": "photo-1559356157-f3315daa41c7",
+      "heroImageMobile": "photo-1688110619871-7ec8ed8d37f9",
+      "heroAlt": "Model crouching on a concrete ledge wearing the Vault Down Jacket against a pale sky",
+      "ctaPrimary": {
+        "label": "Shop New Arrivals",
+        "href": "#/shop?new=1"
+      },
+      "ctaSecondary": {
+        "label": "Explore Collection",
+        "href": "#/collections/obsidian-series"
+      },
+      "statementLabel": "( 01 ) — The Studio",
+      "statementTitle": "Designed for people\nwho move",
+      "statementAccent": "different.",
+      "statementLead": "STRATA makes a small, considered wardrobe: heavyweight basics, precise outerwear and tailoring that doesn't ask you to sit still.",
+      "statementBody": "Every piece is developed in our London studio, cut from fabrics we'd wear ourselves and produced in limited runs with partner mills in Portugal, Italy and Japan. No seasons of filler, no loud logos — just clothes built in layers, designed to be worn hard and kept for years.",
+      "statementImage": "photo-1787044817434-b6d1f927ac21",
+      "facts": [
+        {
+          "label": "Heaviest fleece",
+          "value": "520",
+          "unit": "gsm"
+        },
+        {
+          "label": "Partner mills",
+          "value": "07",
+          "unit": ""
+        },
+        {
+          "label": "Run size, per style",
+          "value": "<400",
+          "unit": ""
+        }
+      ],
+      "categoriesTitle": "Shop by Category",
+      "dropTitle": "The Drop",
+      "dropCollections": [
+        "obsidian-series",
+        "future-form"
+      ],
+      "featuredTitle": "Featured Products",
+      "storiesTitle": "What They're Saying",
+      "faqTitle": "Frequently\nAsked Questions",
+      "contactTitle": "Get in Touch",
+      "contactIntro": "Questions about an order, sizing or a collaboration? Send us a note.",
+      "newsletterTitle": "Be first to know",
+      "newsletterText": "Get early access to new drops, exclusive releases and selected offers."
+    },
+    "about": {
+      "kicker": "About STRATA — Est. 2021",
+      "title": "Built in\nlayers.",
+      "storyImage": "photo-1592833578500-1082e18665a3",
+      "storyDetailImage": "photo-1762354766704-cb386e60dfe9",
+      "storyLead": "STRATA started in 2021 in a shared studio in East London, with one heavyweight tee and a refusal to make anything we wouldn't wear every day.",
+      "storyBody": "Strata — layers of rock laid down over time. That's how we think about a wardrobe: built slowly, one essential on top of another, each piece strong enough to stand alone. We still design every garment in the same studio, still fit every sample on real bodies, and still produce in runs small enough that we know the people who make them.",
+      "quoteImage": "photo-1520529890308-f503006340b4",
+      "quote": "Nothing extra.\nNothing missing.",
+      "principlesTitle": "How we design",
+      "principles": [
+        {
+          "title": "Weight is a feature",
+          "body": "We start with fabric. Heavy jersey, dense fleece, double-faced wool — materials with enough body to hold a silhouette without structure."
+        },
+        {
+          "title": "Cut for movement",
+          "body": "Dropped shoulders, articulated knees, fluid tailoring. Every pattern is tested in motion, not on a mannequin."
+        },
+        {
+          "title": "Quiet identity",
+          "body": "No oversized logos. The brand lives in the proportion, the collar, the weight of the hem — details you recognise without reading."
+        },
+        {
+          "title": "Made to be kept",
+          "body": "Small runs, no discount cycles, restocks of the pieces that work. We would rather make less and make it last."
+        }
+      ],
+      "qualityTitle": "Every piece is made to outlast the season it was designed for.",
+      "qualityBody": "We work with seven family-run mills and factories in Portugal, Italy and Japan, audited annually for fair wages and working conditions. Our cottons are organic, our down is RDS-certified, our wools are traceable to source.",
+      "stats": [
+        {
+          "label": "Organic or recycled fibre",
+          "value": "86%"
+        },
+        {
+          "label": "Garment wash tests per style",
+          "value": "25"
+        },
+        {
+          "label": "Repairs offered, for life",
+          "value": "Free"
+        }
+      ],
+      "galleryTitle": "AW26, in pictures",
+      "gallery": [
+        "photo-1603189343302-e603f7add05a",
+        "photo-1616577711667-3da65b20c36a",
+        "photo-1659522761084-79196b64abe4",
+        "photo-1602706294170-1fed8eecd9f9"
+      ]
+    },
+    "info": {
+      "shipping": {
+        "title": "Shipping",
+        "blocks": [
+          {
+            "heading": "Processing",
+            "body": "Orders placed before 2 PM GMT on business days ship the same day from our London studio."
+          },
+          {
+            "heading": "Rates",
+            "body": "Standard (4–7 business days): free over $150, otherwise $12. Express (1–3 business days): $28."
+          },
+          {
+            "heading": "Duties",
+            "body": "Duties and taxes are included for the UK, EU, US, Canada, Australia and Japan. Other destinations may be charged local import duties on delivery."
+          }
+        ]
+      },
+      "returns": {
+        "title": "Returns",
+        "blocks": [
+          {
+            "heading": "30-day returns",
+            "body": "Return unworn items with tags attached within 30 days of delivery."
+          },
+          {
+            "heading": "Exchanges",
+            "body": "Exchanges are free. We'll ship the new size as soon as your return is scanned by the carrier."
+          },
+          {
+            "heading": "Refunds",
+            "body": "Refunds are $8 and are issued to the original payment method within 5 business days of the return arriving at our studio."
+          }
+        ]
+      },
+      "size-guide": {
+        "title": "Size Guide",
+        "blocks": [
+          {
+            "heading": "How our clothes fit",
+            "body": "Most tops are cut boxy or oversized. Take your usual size for the intended fit, or size down for a closer line. Every product page lists the fit and what size the model is wearing."
+          },
+          {
+            "heading": "Measurements",
+            "body": "Chest: XS 84–88 · S 88–94 · M 94–100 · L 100–106 · XL 106–112 · XXL 112–120 (cm)."
+          },
+          {
+            "heading": "Still unsure?",
+            "body": "Email hello@strata.studio with your height and usual size and we'll recommend a size within 24 hours."
+          }
+        ]
+      },
+      "track-order": {
+        "title": "Track Order",
+        "blocks": [
+          {
+            "heading": "Where's my order?",
+            "body": "Your shipping confirmation email contains a live tracking link. Orders placed in this browser are listed in your Account."
+          }
+        ]
+      },
+      "privacy": {
+        "title": "Privacy Policy",
+        "blocks": [
+          {
+            "heading": "What we collect",
+            "body": "We collect only what we need to process your order and, if you opt in, send you news about drops."
+          },
+          {
+            "heading": "How we use it",
+            "body": "Your data is never sold. It is shared only with the payment, shipping and email providers that make the service work."
+          },
+          {
+            "heading": "Your rights",
+            "body": "You can request access to or deletion of your data at any time: hello@strata.studio."
+          }
+        ]
+      },
+      "terms": {
+        "title": "Terms",
+        "blocks": [
+          {
+            "heading": "Orders",
+            "body": "All orders are subject to availability and confirmation of the order price."
+          },
+          {
+            "heading": "Pricing",
+            "body": "Prices are shown in USD and include duties for supported regions."
+          },
+          {
+            "heading": "Governing law",
+            "body": "These terms are governed by the laws of England and Wales."
+          }
+        ]
+      },
+      "cookies": {
+        "title": "Cookie Policy",
+        "blocks": [
+          {
+            "heading": "Essential storage",
+            "body": "We use your browser's local storage to remember your bag and wishlist. No third-party advertising cookies are set by this storefront."
+          }
+        ]
+      }
+    }
+  },
+  "products": [
+    {
+      "slug": "monolith-oversized-coat",
+      "sku": "ST-OC01",
+      "name": "Monolith Oversized Coat",
+      "published": true,
+      "price": 420,
+      "salePrice": null,
+      "category": "outerwear",
+      "collection": "obsidian-series",
+      "gender": "men",
+      "status": "LIMITED",
+      "featured": true,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-09-12",
+      "images": [
+        "photo-1688245608269-4d598f0cce3e",
+        "photo-1763583817010-034afe681445"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Charcoal",
+          "hex": "#3B3B39"
+        }
+      ],
+      "stock": {
+        "Black|XS": 14,
+        "Black|S": 8,
+        "Black|M": 0,
+        "Black|L": 18,
+        "Black|XL": 7,
+        "Black|XXL": 2,
+        "Charcoal|XS": 8,
+        "Charcoal|S": 10,
+        "Charcoal|M": 1,
+        "Charcoal|L": 0,
+        "Charcoal|XL": 18,
+        "Charcoal|XXL": 3
+      },
+      "description": "A dropped-shoulder overcoat cut long and wide from a dense wool-melton. Built to sit over everything you own and still hang clean.",
+      "details": [
+        "Dropped shoulder, oversized body",
+        "Concealed four-button placket",
+        "Internal media pocket",
+        "Back vent, 112 cm length (size M)"
+      ],
+      "materials": "80% recycled wool, 20% polyamide. Lining: 100% cupro.",
+      "fit": "Oversized. Take your usual size for the intended fit, size down for a closer line. Model is 187 cm and wears M.",
+      "care": "Dry clean only. Brush after wear. Store on a wide-shouldered hanger."
+    },
+    {
+      "slug": "vault-down-jacket",
+      "sku": "ST-DJ02",
+      "name": "Vault Down Jacket",
+      "published": true,
+      "price": 385,
+      "salePrice": null,
+      "category": "outerwear",
+      "collection": "terrain",
+      "gender": "unisex",
+      "status": "NEW",
+      "featured": true,
+      "newArrival": true,
+      "bestSeller": false,
+      "createdAt": "2026-09-20",
+      "images": [
+        "photo-1769689387681-42b8a41fa2de",
+        "photo-1611692370244-aebb15c17941"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Stone",
+          "hex": "#BDB6A8"
+        }
+      ],
+      "stock": {
+        "Black|XS": 2,
+        "Black|S": 9,
+        "Black|M": 0,
+        "Black|L": 0,
+        "Black|XL": 15,
+        "Black|XXL": 11,
+        "Stone|XS": 0,
+        "Stone|S": 1,
+        "Stone|M": 15,
+        "Stone|L": 14,
+        "Stone|XL": 13,
+        "Stone|XXL": 13
+      },
+      "description": "Box-baffled down puffer in a matte-coated ripstop. Stand collar, storm flap and a cropped hem that stacks over wide trousers.",
+      "details": [
+        "750 fill-power responsibly sourced down",
+        "Two-way YKK Aquaguard zip",
+        "Hand-warmer and internal zip pockets",
+        "Packs into its own collar"
+      ],
+      "materials": "Shell: 100% recycled nylon ripstop, PFC-free DWR. Fill: 90/10 RDS down.",
+      "fit": "Relaxed, cropped at the hip. True to size.",
+      "care": "Machine wash cold on a gentle cycle with down wash. Tumble dry low with dryer balls."
+    },
+    {
+      "slug": "axis-tailored-blazer",
+      "sku": "ST-BZ03",
+      "name": "Axis Tailored Blazer",
+      "published": true,
+      "price": 310,
+      "salePrice": null,
+      "category": "outerwear",
+      "collection": "future-form",
+      "gender": "women",
+      "status": "BEST SELLER",
+      "featured": true,
+      "newArrival": false,
+      "bestSeller": true,
+      "createdAt": "2026-06-02",
+      "images": [
+        "photo-1747814965210-a97dc440f6b7",
+        "photo-1747814896391-6105fd2f29c7"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Stone",
+          "hex": "#BDB6A8"
+        },
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Stone|XS": 2,
+        "Stone|S": 0,
+        "Stone|M": 13,
+        "Stone|L": 12,
+        "Stone|XL": 15,
+        "Stone|XXL": 3,
+        "Black|XS": 7,
+        "Black|S": 7,
+        "Black|M": 18,
+        "Black|L": 17,
+        "Black|XL": 17,
+        "Black|XXL": 0
+      },
+      "description": "An unstructured, boyfriend-cut blazer with a softened shoulder and long line. Tailoring that moves like a jacket.",
+      "details": [
+        "Single-breasted, one button",
+        "Half-canvas front, no shoulder pad",
+        "Flap pockets, functional cuffs",
+        "Tonal horn buttons"
+      ],
+      "materials": "58% wool, 40% viscose, 2% elastane. Lining: 100% cupro.",
+      "fit": "Relaxed and elongated. Size down for a sharper fit.",
+      "care": "Dry clean only. Steam to refresh."
+    },
+    {
+      "slug": "drift-wool-overcoat",
+      "sku": "ST-OC04",
+      "name": "Drift Wool Overcoat",
+      "published": true,
+      "price": 460,
+      "salePrice": 368,
+      "category": "outerwear",
+      "collection": "obsidian-series",
+      "gender": "women",
+      "status": "",
+      "featured": false,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-03-18",
+      "images": [
+        "photo-1613915617430-8ab0fd7c6baf",
+        "photo-1645561305502-63a9ba09ab09"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Charcoal",
+          "hex": "#3B3B39"
+        },
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Charcoal|XS": 7,
+        "Charcoal|S": 1,
+        "Charcoal|M": 15,
+        "Charcoal|L": 14,
+        "Charcoal|XL": 17,
+        "Charcoal|XXL": 0,
+        "Black|XS": 13,
+        "Black|S": 0,
+        "Black|M": 13,
+        "Black|L": 12,
+        "Black|XL": 3,
+        "Black|XXL": 0
+      },
+      "description": "A double-faced wool coat with raw-cut edges and a notched lapel. No lining, no excess — just weight, drape and a precise shoulder.",
+      "details": [
+        "Double-faced construction, unlined",
+        "Hand-finished raw edges",
+        "Welt pockets",
+        "Self-tie belt included"
+      ],
+      "materials": "90% wool, 10% cashmere.",
+      "fit": "Relaxed through the body. True to size.",
+      "care": "Dry clean only."
+    },
+    {
+      "slug": "base-heavyweight-tee",
+      "sku": "ST-TE05",
+      "name": "Base Heavyweight Tee",
+      "published": true,
+      "price": 85,
+      "salePrice": null,
+      "category": "tops",
+      "collection": "core-program",
+      "gender": "men",
+      "status": "BEST SELLER",
+      "featured": true,
+      "newArrival": false,
+      "bestSeller": true,
+      "createdAt": "2026-01-10",
+      "images": [
+        "photo-1622383129198-dacbb32854b5",
+        "photo-1615903040611-e599dfaa6752"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Bone",
+          "hex": "#E8E3D8"
+        },
+        {
+          "name": "Ash",
+          "hex": "#8E8C87"
+        }
+      ],
+      "stock": {
+        "Black|XS": 7,
+        "Black|S": 14,
+        "Black|M": 8,
+        "Black|L": 7,
+        "Black|XL": 17,
+        "Black|XXL": 13,
+        "Bone|XS": 18,
+        "Bone|S": 16,
+        "Bone|M": 10,
+        "Bone|L": 9,
+        "Bone|XL": 11,
+        "Bone|XXL": 14,
+        "Ash|XS": 16,
+        "Ash|S": 11,
+        "Ash|M": 2,
+        "Ash|L": 1,
+        "Ash|XL": 9,
+        "Ash|XXL": 0
+      },
+      "description": "The foundation. 300 gsm loopback jersey, boxy through the body with a dense 3 cm rib collar that holds its shape wash after wash.",
+      "details": [
+        "300 gsm garment-dyed jersey",
+        "Boxy body, dropped shoulder",
+        "3 cm rib collar",
+        "Pre-shrunk"
+      ],
+      "materials": "100% organic cotton, knitted in Portugal.",
+      "fit": "Boxy. Take your usual size.",
+      "care": "Machine wash cold inside out. Dry flat. Do not tumble dry."
+    },
+    {
+      "slug": "form-heavyweight-hoodie",
+      "sku": "ST-HD06",
+      "name": "Form Heavyweight Hoodie",
+      "published": true,
+      "price": 185,
+      "salePrice": null,
+      "category": "tops",
+      "collection": "core-program",
+      "gender": "unisex",
+      "status": "BEST SELLER",
+      "featured": true,
+      "newArrival": false,
+      "bestSeller": true,
+      "createdAt": "2026-02-04",
+      "images": [
+        "photo-1626408456883-d204eb57c763",
+        "photo-1691689761290-2641cf0fc59a"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Charcoal",
+          "hex": "#3B3B39"
+        },
+        {
+          "name": "Stone",
+          "hex": "#BDB6A8"
+        }
+      ],
+      "stock": {
+        "Black|XS": 7,
+        "Black|S": 11,
+        "Black|M": 2,
+        "Black|L": 1,
+        "Black|XL": 17,
+        "Black|XXL": 12,
+        "Charcoal|XS": 18,
+        "Charcoal|S": 13,
+        "Charcoal|M": 7,
+        "Charcoal|L": 3,
+        "Charcoal|XL": 11,
+        "Charcoal|XXL": 13,
+        "Stone|XS": 2,
+        "Stone|S": 3,
+        "Stone|M": 17,
+        "Stone|L": 16,
+        "Stone|XL": 15,
+        "Stone|XXL": 15
+      },
+      "description": "A 520 gsm brushed-back fleece hoodie with a double-layer hood and no drawcords. Cropped body, long sleeve, heavy by design.",
+      "details": [
+        "520 gsm brushed fleece",
+        "Double-layer hood, no cords",
+        "Kangaroo pocket with hidden zip",
+        "Ribbed cuffs and hem"
+      ],
+      "materials": "100% organic cotton.",
+      "fit": "Oversized, slightly cropped. True to size.",
+      "care": "Machine wash cold. Dry flat."
+    },
+    {
+      "slug": "contour-rib-knit",
+      "sku": "ST-KN07",
+      "name": "Contour Rib Knit",
+      "published": true,
+      "price": 165,
+      "salePrice": null,
+      "category": "tops",
+      "collection": "future-form",
+      "gender": "women",
+      "status": "NEW",
+      "featured": true,
+      "newArrival": true,
+      "bestSeller": false,
+      "createdAt": "2026-09-16",
+      "images": [
+        "photo-1515511624704-b8916dcc30ea",
+        "photo-1595026525047-dfa997df8a4a"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        {
+          "name": "Bone",
+          "hex": "#E8E3D8"
+        },
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Bone|XS": 7,
+        "Bone|S": 8,
+        "Bone|M": 0,
+        "Bone|L": 18,
+        "Bone|XL": 17,
+        "Black|XS": 13,
+        "Black|S": 3,
+        "Black|M": 17,
+        "Black|L": 16,
+        "Black|XL": 3
+      },
+      "description": "A close-fitting high-neck knit in a sculpted 2×2 rib. Fully fashioned, so every seam is knitted in rather than sewn.",
+      "details": [
+        "Fully fashioned 2×2 rib",
+        "Mock neck",
+        "Extra-long sleeve with thumb-rest cuff",
+        "7-gauge"
+      ],
+      "materials": "70% merino wool, 30% recycled cashmere.",
+      "fit": "Slim, second-skin fit. Size up for a relaxed line.",
+      "care": "Hand wash cold or dry clean. Dry flat."
+    },
+    {
+      "slug": "plinth-pleated-trouser",
+      "sku": "ST-TR08",
+      "name": "Plinth Pleated Trouser",
+      "published": true,
+      "price": 195,
+      "salePrice": null,
+      "category": "bottoms",
+      "collection": "future-form",
+      "gender": "women",
+      "status": "NEW",
+      "featured": true,
+      "newArrival": true,
+      "bestSeller": false,
+      "createdAt": "2026-09-08",
+      "images": [
+        "photo-1657815929003-b97cc426cb3d",
+        "photo-1626098841206-db37c9ef9b57"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        {
+          "name": "Bone",
+          "hex": "#E8E3D8"
+        },
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Bone|XS": 13,
+        "Bone|S": 15,
+        "Bone|M": 9,
+        "Bone|L": 8,
+        "Bone|XL": 3,
+        "Black|XS": 0,
+        "Black|S": 13,
+        "Black|M": 7,
+        "Black|L": 3,
+        "Black|XL": 12
+      },
+      "description": "High-rise, double-pleated and full-length. A fluid wool-blend twill that pools slightly at the shoe.",
+      "details": [
+        "Double front pleats",
+        "High rise, extended waistband",
+        "Side-adjusters, no belt loops",
+        "Pressed centre crease"
+      ],
+      "materials": "64% polyester, 33% viscose, 3% elastane.",
+      "fit": "Wide leg, high rise. True to size, 82 cm inseam.",
+      "care": "Machine wash cold on delicate. Hang dry. Warm iron."
+    },
+    {
+      "slug": "shadow-cargo-trouser",
+      "sku": "ST-TR09",
+      "name": "Shadow Cargo Trouser",
+      "published": true,
+      "price": 175,
+      "salePrice": null,
+      "category": "bottoms",
+      "collection": "obsidian-series",
+      "gender": "men",
+      "status": "LIMITED",
+      "featured": true,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-08-21",
+      "images": [
+        "photo-1783545207150-61722654103f",
+        "photo-1770918655041-5de83c95ccf9"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Charcoal",
+          "hex": "#3B3B39"
+        }
+      ],
+      "stock": {
+        "Black|XS": 0,
+        "Black|S": 11,
+        "Black|M": 2,
+        "Black|L": 1,
+        "Black|XL": 12,
+        "Black|XXL": 10,
+        "Charcoal|XS": 13,
+        "Charcoal|S": 13,
+        "Charcoal|M": 7,
+        "Charcoal|L": 3,
+        "Charcoal|XL": 3,
+        "Charcoal|XXL": 11
+      },
+      "description": "A relaxed cargo in brushed cotton-nylon. Bellowed pockets sit flat until you need them. Drawcord hem to stack or taper.",
+      "details": [
+        "Six-pocket construction",
+        "Articulated knee",
+        "Drawcord hem",
+        "Matte gunmetal hardware"
+      ],
+      "materials": "65% cotton, 35% nylon.",
+      "fit": "Relaxed, straight leg. True to size.",
+      "care": "Machine wash cold. Tumble dry low."
+    },
+    {
+      "slug": "grade-wide-denim",
+      "sku": "ST-DN10",
+      "name": "Grade Wide Denim",
+      "published": true,
+      "price": 160,
+      "salePrice": null,
+      "category": "bottoms",
+      "collection": "core-program",
+      "gender": "women",
+      "status": "",
+      "featured": false,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-04-14",
+      "images": [
+        "photo-1780566760434-5f42a317b0a9",
+        "photo-1780566759999-4dbaa4218959"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        {
+          "name": "Washed Indigo",
+          "hex": "#4A5566"
+        },
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Washed Indigo|XS": 11,
+        "Washed Indigo|S": 14,
+        "Washed Indigo|M": 8,
+        "Washed Indigo|L": 7,
+        "Washed Indigo|XL": 1,
+        "Black|XS": 14,
+        "Black|S": 13,
+        "Black|M": 7,
+        "Black|L": 3,
+        "Black|XL": 7
+      },
+      "description": "A low-slung wide leg in 13.5 oz Japanese selvedge. Stone-washed once, then left to break in with you.",
+      "details": [
+        "13.5 oz Japanese selvedge",
+        "Five-pocket, button fly",
+        "Low rise, wide leg",
+        "Chain-stitched hem"
+      ],
+      "materials": "100% cotton denim.",
+      "fit": "Loose, wide leg. Take your usual waist size.",
+      "care": "Wash as little as possible, cold and inside out. Hang dry."
+    },
+    {
+      "slug": "section-overshirt",
+      "sku": "ST-OS11",
+      "name": "Section Overshirt",
+      "published": true,
+      "price": 215,
+      "salePrice": null,
+      "category": "tops",
+      "collection": "terrain",
+      "gender": "men",
+      "status": "NEW",
+      "featured": false,
+      "newArrival": true,
+      "bestSeller": false,
+      "createdAt": "2026-09-02",
+      "images": [
+        "photo-1783545207084-11176c695627",
+        "photo-1653491951262-eaa7b1276aad"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Stone",
+          "hex": "#BDB6A8"
+        }
+      ],
+      "stock": {
+        "Black|XS": 18,
+        "Black|S": 11,
+        "Black|M": 2,
+        "Black|L": 1,
+        "Black|XL": 11,
+        "Black|XXL": 15,
+        "Stone|XS": 16,
+        "Stone|S": 3,
+        "Stone|M": 17,
+        "Stone|L": 16,
+        "Stone|XL": 9,
+        "Stone|XXL": 18
+      },
+      "description": "A panelled overshirt in waxed cotton canvas, with contrast top-stitching that maps the pattern. Wear open as a layer or closed as a shirt.",
+      "details": [
+        "Waxed cotton canvas",
+        "Contrast twin-needle stitching",
+        "Snap placket and cuffs",
+        "Two chest bellow pockets"
+      ],
+      "materials": "100% cotton with paraffin wax finish.",
+      "fit": "Boxy and slightly cropped. True to size.",
+      "care": "Spot clean only. Re-wax annually."
+    },
+    {
+      "slug": "level-court-sneaker",
+      "sku": "ST-FW12",
+      "name": "Level Court Sneaker",
+      "published": true,
+      "price": 240,
+      "salePrice": null,
+      "category": "footwear",
+      "collection": "core-program",
+      "gender": "unisex",
+      "status": "NEW",
+      "featured": false,
+      "newArrival": true,
+      "bestSeller": false,
+      "createdAt": "2026-09-18",
+      "images": [
+        "photo-1585591359088-e144e8a61170",
+        "photo-1590330297626-d7aff25a0431"
+      ],
+      "sizes": [
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45"
+      ],
+      "colors": [
+        {
+          "name": "Bone",
+          "hex": "#E8E3D8"
+        },
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Bone|39": 13,
+        "Bone|40": 18,
+        "Bone|41": 0,
+        "Bone|42": 0,
+        "Bone|43": 1,
+        "Bone|44": 2,
+        "Bone|45": 3,
+        "Black|39": 0,
+        "Black|40": 7,
+        "Black|41": 8,
+        "Black|42": 9,
+        "Black|43": 10,
+        "Black|44": 11,
+        "Black|45": 12
+      },
+      "description": "A low-profile court shoe in full-grain Italian leather on a stitched cupsole. No logos, nothing extra.",
+      "details": [
+        "Full-grain leather upper",
+        "Margom rubber cupsole, stitched",
+        "Leather-lined, removable footbed",
+        "Waxed cotton laces"
+      ],
+      "materials": "Upper and lining: calf leather. Sole: natural rubber.",
+      "fit": "True to size. Half sizes, take the next size up.",
+      "care": "Wipe clean with a damp cloth. Condition leather every few months."
+    },
+    {
+      "slug": "ingot-leather-bag",
+      "sku": "ST-AC13",
+      "name": "Ingot Leather Bag",
+      "published": true,
+      "price": 290,
+      "salePrice": null,
+      "category": "accessories",
+      "collection": "obsidian-series",
+      "gender": "unisex",
+      "status": "LIMITED",
+      "featured": true,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-07-30",
+      "images": [
+        "photo-1758542988969-39a10168b2ce",
+        "photo-1746880223690-359948154c53"
+      ],
+      "sizes": [
+        "OS"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Black|OS": 16
+      },
+      "description": "A soft, gathered shoulder bag in vegetable-tanned lambskin. Holds a day's essentials; folds nearly flat when empty.",
+      "details": [
+        "Magnetic closure",
+        "Interior zip pocket",
+        "Adjustable 60–70 cm strap",
+        "32 × 18 × 12 cm"
+      ],
+      "materials": "100% lambskin leather, cotton twill lining.",
+      "fit": "One size.",
+      "care": "Keep away from direct heat and water. Store in dust bag."
+    },
+    {
+      "slug": "aperture-sunglasses",
+      "sku": "ST-AC14",
+      "name": "Aperture Sunglasses",
+      "published": true,
+      "price": 180,
+      "salePrice": null,
+      "category": "accessories",
+      "collection": "future-form",
+      "gender": "unisex",
+      "status": "",
+      "featured": false,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-05-22",
+      "images": [
+        "photo-1645997098653-ed4519760b10",
+        "photo-1721957786618-5584515a50d3"
+      ],
+      "sizes": [
+        "OS"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Black|OS": 16
+      },
+      "description": "A narrow rectangular frame hand-cut from Mazzucchelli acetate, fitted with category 3 polarised lenses.",
+      "details": [
+        "Italian acetate frame",
+        "Polarised CR-39 lenses, 100% UV",
+        "Five-barrel hinges",
+        "Includes case and cloth"
+      ],
+      "materials": "Acetate frame, CR-39 lens.",
+      "fit": "Medium fit. Lens 52 mm, bridge 20 mm, temple 145 mm.",
+      "care": "Clean with the provided cloth. Store in case."
+    },
+    {
+      "slug": "ridge-rib-beanie",
+      "sku": "ST-AC15",
+      "name": "Ridge Rib Beanie",
+      "published": true,
+      "price": 55,
+      "salePrice": null,
+      "category": "accessories",
+      "collection": "core-program",
+      "gender": "unisex",
+      "status": "BEST SELLER",
+      "featured": false,
+      "newArrival": false,
+      "bestSeller": true,
+      "createdAt": "2025-11-01",
+      "images": [
+        "photo-1764212466644-a4a02fc37261",
+        "photo-1708533477284-7f214548873b"
+      ],
+      "sizes": [
+        "OS"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Charcoal",
+          "hex": "#3B3B39"
+        },
+        {
+          "name": "Bone",
+          "hex": "#E8E3D8"
+        }
+      ],
+      "stock": {
+        "Black|OS": 15,
+        "Charcoal|OS": 9,
+        "Bone|OS": 9
+      },
+      "description": "A deep-turn-up fisherman beanie in chunky merino rib. Woven tonal label, nothing louder.",
+      "details": [
+        "Double-layer turn-up",
+        "Chunky 5-gauge rib",
+        "Woven tonal label"
+      ],
+      "materials": "100% extra-fine merino wool.",
+      "fit": "One size, stretches to fit.",
+      "care": "Hand wash cold. Dry flat."
+    },
+    {
+      "slug": "signal-varsity-jacket",
+      "sku": "ST-VJ16",
+      "name": "Signal Varsity Jacket",
+      "published": true,
+      "price": 345,
+      "salePrice": null,
+      "category": "outerwear",
+      "collection": "terrain",
+      "gender": "women",
+      "status": "LIMITED",
+      "featured": false,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-08-10",
+      "images": [
+        "photo-1778395469141-8d70d501bbd7",
+        "photo-1778395528405-267415a962e7"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        }
+      ],
+      "stock": {
+        "Black|XS": 13,
+        "Black|S": 18,
+        "Black|M": 12,
+        "Black|L": 11,
+        "Black|XL": 3
+      },
+      "description": "A cropped varsity in boiled wool with leather sleeves and a single chenille initial. Collegiate proportions, re-cut for now.",
+      "details": [
+        "Boiled wool body, lambskin sleeves",
+        "Snap front",
+        "Striped rib collar, cuffs and hem",
+        "Quilted satin lining"
+      ],
+      "materials": "Body: 80% wool, 20% polyamide. Sleeves: lamb leather.",
+      "fit": "Cropped and boxy. True to size.",
+      "care": "Specialist leather clean only."
+    },
+    {
+      "slug": "signal-oversized-tee",
+      "sku": "ST-TE17",
+      "name": "Signal Oversized Tee",
+      "published": true,
+      "price": 95,
+      "salePrice": null,
+      "category": "tops",
+      "collection": "core-program",
+      "gender": "unisex",
+      "status": "",
+      "featured": false,
+      "newArrival": false,
+      "bestSeller": false,
+      "createdAt": "2026-07-01",
+      "images": [
+        "photo-1780566036282-e0845b9e4efe",
+        "photo-1768696082704-c4e5593d9f27"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Bone",
+          "hex": "#E8E3D8"
+        }
+      ],
+      "stock": {
+        "Black|XS": 11,
+        "Black|S": 9,
+        "Black|M": 0,
+        "Black|L": 0,
+        "Black|XL": 1,
+        "Black|XXL": 3,
+        "Bone|XS": 2,
+        "Bone|S": 11,
+        "Bone|M": 2,
+        "Bone|L": 1,
+        "Bone|XL": 15,
+        "Bone|XXL": 7
+      },
+      "description": "An exaggerated tee with a longer body and elbow-length sleeve. Screen-printed back graphic in water-based ink.",
+      "details": [
+        "260 gsm jersey",
+        "Water-based back print",
+        "Elbow-length sleeve",
+        "Side splits"
+      ],
+      "materials": "100% organic cotton.",
+      "fit": "Very oversized. Size down for a regular oversized fit.",
+      "care": "Machine wash cold inside out. Do not iron print."
+    },
+    {
+      "slug": "ridge-shearling-jacket",
+      "sku": "ST-SJ18",
+      "name": "Ridge Shearling Jacket",
+      "published": true,
+      "price": 495,
+      "salePrice": null,
+      "category": "outerwear",
+      "collection": "terrain",
+      "gender": "men",
+      "status": "BEST SELLER",
+      "featured": false,
+      "newArrival": false,
+      "bestSeller": true,
+      "createdAt": "2026-02-20",
+      "images": [
+        "photo-1532332248682-206cc786359f",
+        "photo-1674851993233-f9bbddca4204"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Black",
+          "hex": "#141413"
+        },
+        {
+          "name": "Stone",
+          "hex": "#BDB6A8"
+        }
+      ],
+      "stock": {
+        "Black|XS": 17,
+        "Black|S": 11,
+        "Black|M": 2,
+        "Black|L": 1,
+        "Black|XL": 10,
+        "Black|XXL": 17,
+        "Stone|XS": 15,
+        "Stone|S": 3,
+        "Stone|M": 17,
+        "Stone|L": 16,
+        "Stone|XL": 8,
+        "Stone|XXL": 0
+      },
+      "description": "A cropped bomber in suede with a curly shearling collar and full lining. Heavy, warm and built to last a decade.",
+      "details": [
+        "Suede shell, shearling collar",
+        "Two-way metal zip",
+        "Snap-tab hem",
+        "Full shearling body lining"
+      ],
+      "materials": "100% lamb suede with lamb shearling.",
+      "fit": "Relaxed, cropped. True to size.",
+      "care": "Specialist leather clean only."
+    }
+  ],
+  "collections": [
+    {
+      "slug": "obsidian-series",
+      "name": "Obsidian Series",
+      "label": "New Collection",
+      "status": "live",
+      "season": "AW26",
+      "hero": "photo-1603189343302-e603f7add05a",
+      "cover": "photo-1603189343302-e603f7add05a",
+      "intro": "Black, in every weight.",
+      "description": "Obsidian is a study in one colour. Dense wools, brushed cottons and soft leathers, all dyed to the same deep black, so the only thing left to read is the cut. Oversized coats, relaxed cargo and gathered leather — built to be worn together or not at all.",
+      "notes": [
+        "12 pieces",
+        "Dyed to one black",
+        "Small-batch run"
+      ]
+    },
+    {
+      "slug": "future-form",
+      "name": "Future Form",
+      "label": "Exclusive Drop",
+      "status": "live",
+      "season": "SS26 — Capsule",
+      "hero": "photo-1654777673891-1f4a24179dac",
+      "cover": "photo-1659522761084-79196b64abe4",
+      "intro": "Tailoring, softened.",
+      "description": "Future Form takes the architecture of tailoring — the pleat, the lapel, the shoulder — and removes everything that restricts. Unstructured blazers, fluid trousers and fully-fashioned knits in bone and black.",
+      "notes": [
+        "Limited capsule",
+        "Unstructured tailoring",
+        "Bone / Black"
+      ]
+    },
+    {
+      "slug": "terrain",
+      "name": "Terrain",
+      "label": "Outerwear Edit",
+      "status": "live",
+      "season": "AW26",
+      "hero": "photo-1555274850-0b443db9b62e",
+      "cover": "photo-1559356157-f3315daa41c7",
+      "intro": "Built for weather, cut for the city.",
+      "description": "Terrain is our outerwear programme. Waxed canvas, box-baffled down, suede and shearling — technical where it counts, restrained everywhere else.",
+      "notes": [
+        "Technical outerwear",
+        "Weather-rated",
+        "Made to last"
+      ]
+    },
+    {
+      "slug": "core-program",
+      "name": "Core Program",
+      "label": "Always On",
+      "status": "live",
+      "season": "Permanent",
+      "hero": "photo-1559697242-a465f2578a95",
+      "cover": "photo-1559697242-a465f2578a95",
+      "intro": "The pieces we never stop making.",
+      "description": "Heavyweight tees, 520 gsm fleece, Japanese denim and a leather court shoe. The permanent collection — refined every season, never replaced.",
+      "notes": [
+        "Permanent collection",
+        "Heavyweight",
+        "Restocked monthly"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "slug": "women",
+      "name": "Women",
+      "type": "gender",
+      "image": "photo-1645561305577-4cb5be67a40a",
+      "description": "Tailoring, knits and outerwear for women."
+    },
+    {
+      "slug": "men",
+      "name": "Men",
+      "type": "gender",
+      "image": "photo-1694516668099-8edaeef66b61",
+      "description": "Heavyweight essentials and outerwear for men."
+    },
+    {
+      "slug": "outerwear",
+      "name": "Outerwear",
+      "type": "category",
+      "image": "photo-1763583817010-034afe681445",
+      "description": "Coats, down and leather."
+    },
+    {
+      "slug": "tops",
+      "name": "Tops",
+      "type": "category",
+      "image": "photo-1622383129198-dacbb32854b5",
+      "description": "Tees, fleece, knits and overshirts."
+    },
+    {
+      "slug": "bottoms",
+      "name": "Bottoms",
+      "type": "category",
+      "image": "photo-1657815929003-b97cc426cb3d",
+      "description": "Trousers, cargo and denim."
+    },
+    {
+      "slug": "footwear",
+      "name": "Footwear",
+      "type": "category",
+      "image": "photo-1585591359088-e144e8a61170",
+      "description": "Leather court shoes."
+    },
+    {
+      "slug": "accessories",
+      "name": "Accessories",
+      "type": "category",
+      "image": "photo-1758542988969-39a10168b2ce",
+      "description": "Bags, eyewear and knitwear."
+    }
+  ],
+  "testimonials": [
+    {
+      "name": "Marcus O.",
+      "username": "marcus.oy",
+      "profileImage": "photo-1761706755002-0d89292232a7",
+      "image": "photo-1692297188668-c609126f8f36",
+      "review": "The Monolith coat is ridiculous. Weight, drape, all of it. Worn it every day since it landed.",
+      "likes": 3184,
+      "comments": 57,
+      "date": "2 days ago",
+      "product": "monolith-oversized-coat"
+    },
+    {
+      "name": "Ines R.",
+      "username": "ines.rvr",
+      "profileImage": "photo-1637499947898-7c6d10025a2d",
+      "image": "photo-1648249626189-d7a4d88a9416",
+      "review": "Finally a heavyweight tee that doesn't lose its collar after three washes. Ordered two more.",
+      "likes": 4271,
+      "comments": 83,
+      "date": "3 days ago",
+      "product": "base-heavyweight-tee"
+    },
+    {
+      "name": "Theo K.",
+      "username": "theo.kane",
+      "profileImage": "photo-1637852001110-b8825e3ebeae",
+      "image": "photo-1649565899064-51e024a0698f",
+      "review": "Perfect fit on the Shadow Cargo. Packaging, quality, delivery — feels like a proper label.",
+      "likes": 2096,
+      "comments": 41,
+      "date": "1 day ago",
+      "product": "shadow-cargo-trouser"
+    },
+    {
+      "name": "Amara D.",
+      "username": "amara.dn",
+      "profileImage": "photo-1637536701306-3214e9cec64a",
+      "image": "photo-1638412326372-bfc7fc55f2ed",
+      "review": "The Form hoodie is the heaviest thing I own and I mean that as a compliment.",
+      "likes": 5902,
+      "comments": 112,
+      "date": "4 days ago",
+      "product": "form-heavyweight-hoodie"
+    },
+    {
+      "name": "Jonah P.",
+      "username": "jonah.wav",
+      "profileImage": "photo-1618673827854-0065d21af001",
+      "image": "photo-1762289016867-b6cc09303e1c",
+      "review": "Third order. Every piece works with everything else, which is exactly the point.",
+      "likes": 1733,
+      "comments": 29,
+      "date": "1 week ago",
+      "product": "vault-down-jacket"
+    },
+    {
+      "name": "Selin A.",
+      "username": "selin.aksoy",
+      "profileImage": "photo-1732464517792-7385024242a6",
+      "image": "photo-1687626896914-61e59a0e5623",
+      "review": "Wore the full black look to a gallery opening. Three people asked where it was from.",
+      "likes": 2688,
+      "comments": 64,
+      "date": "5 days ago",
+      "product": "shadow-cargo-trouser"
+    }
+  ],
+  "faq": [
+    {
+      "order": 1,
+      "question": "What is your shipping policy?",
+      "answer": "Orders placed before 2 PM GMT on a business day ship the same day from our London studio. Standard shipping is free on orders over $150; below that, a flat $12 applies. Express delivery is available at checkout."
+    },
+    {
+      "order": 2,
+      "question": "What is your return policy?",
+      "answer": "You have 30 days from delivery to return unworn items with tags attached for a full refund or exchange. Start a return from your account or the link in your shipping email — returns are free for exchanges and $8 for refunds. Final-sale items are marked on the product page."
+    },
+    {
+      "order": 3,
+      "question": "How do I find my size?",
+      "answer": "Every product page includes a size guide with garment measurements, the fit (boxy, relaxed, oversized) and what size our model wears. As a rule, our tops are cut generously — take your usual size for the intended fit, or size down for a closer line. Still unsure? Email us your height and usual size and we'll advise within 24 hours."
+    },
+    {
+      "order": 4,
+      "question": "Do you offer international shipping?",
+      "answer": "Yes. We ship to over 60 countries with fully tracked, duties-paid delivery for the UK, EU, US, Canada, Australia and Japan — so the price you see at checkout is the price you pay. Other destinations may be subject to local import duties."
+    },
+    {
+      "order": 5,
+      "question": "How do I track my order?",
+      "answer": "As soon as your order leaves the studio you'll receive an email with a tracking link. You can also track any order from the Track Order page using your order number and email address."
+    },
+    {
+      "order": 6,
+      "question": "How should I care for my clothing?",
+      "answer": "Wash less, wash cold. Most of our jersey and fleece is pre-shrunk and garment-dyed, so wash inside out at 30°C and dry flat to preserve the weight and shape. Wool and tailoring should be brushed and steamed rather than washed. Specific care instructions are on every product page and garment label."
+    }
+  ],
+  "social": [
+    {
+      "image": "photo-1592833578500-1082e18665a3",
+      "caption": "Obsidian, studio day one."
+    },
+    {
+      "image": "photo-1589739401762-670be815e704",
+      "caption": "Terrain on location."
+    },
+    {
+      "image": "photo-1787044817434-b6d1f927ac21",
+      "caption": "Tailoring, unstructured."
+    },
+    {
+      "image": "photo-1688110619871-7ec8ed8d37f9",
+      "caption": "Monolith, in motion."
+    },
+    {
+      "image": "photo-1637499947898-7c6d10025a2d",
+      "caption": "Future Form — bone."
+    },
+    {
+      "image": "photo-1762354766704-cb386e60dfe9",
+      "caption": "520 gsm, up close."
+    },
+    {
+      "image": "photo-1732464517792-7385024242a6",
+      "caption": "Backstage, AW26."
+    },
+    {
+      "image": "photo-1566457990563-908fbcba9a08",
+      "caption": "Where the collection started."
+    }
+  ]
+}

@@ -1,54 +1,37 @@
 /* ==========================================================================
-   STRATA — BRAND CONFIGURATION
-   Brand identity, contact details and commerce settings live here.
-   Colours and type live in assets/css/theme.css.
+   STRATA — IMAGE PIPELINE
+   Brand settings, copy and catalogue now live in data/content.json and are
+   edited from /admin. This file only knows how to turn an image reference
+   into responsive URLs.
+
+   An image reference is either:
+   - an Unsplash photo id ("photo-123…"), served through Unsplash's CDN, or
+   - a full URL (e.g. an upload in Vercel Blob), served through Vercel's
+     image optimiser when the site runs on Vercel.
    ========================================================================== */
 
-window.BRAND = {
-  name: "STRATA",
-  legalName: "Strata Studio Ltd.",
-  tagline: "Built in layers. Worn with intent.",
-  description:
-    "Premium streetwear and modern essentials, cut in heavyweight fabrics and made in small runs. Designed in London.",
-  url: "https://strata.studio",
-  email: "hello@strata.studio",
-  social: "@strata.studio",
-  socialLinks: {
-    instagram: "https://instagram.com/",
-    tiktok: "https://tiktok.com/",
-    pinterest: "https://pinterest.com/",
-    youtube: "https://youtube.com/",
-  },
-  location: { line1: "Studio 04, 118 Kingsland Road", line2: "London E2 8DP", est: "Est. 2021" },
-  hours: { days: "Monday – Friday", time: "10 AM – 6 PM" },
-  announcement: {
-    text: "Free worldwide shipping on orders over $150",
-    cta: "Shop new arrivals",
-    href: "#/shop?new=1",
-  },
-  currency: "USD",
-  locale: "en-US",
-  freeShippingThreshold: 150,
-  shippingRates: [
-    { id: "standard", label: "Standard", eta: "4–7 business days", price: 12 },
-    { id: "express", label: "Express", eta: "1–3 business days", price: 28 },
-  ],
-};
-
-/* --------------------------------------------------------------------------
-   Image pipeline. All photography is served through an image CDN with
-   responsive srcsets and one consistent monochrome grade, so the whole
-   catalogue reads as a single campaign. Swap `IMG.src` to point at Shopify
-   CDN / Cloudinary / your own bucket when real product photography lands.
-   -------------------------------------------------------------------------- */
 window.IMG = {
-  grade: "sat=-100&con=6",
+  grade: "sat=-100&con=6",               // set from theme.monochrome at boot
+  vercelSizes: [256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+
+  isExternal(id) { return /^(https?:)?\/\//.test(id) || id.startsWith("/"); },
+
   src(id, w, h, extra = "") {
+    if (!id) return "";
+    if (this.isExternal(id)) {
+      const onVercel = !/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname) && /^https?:\/\//.test(id);
+      if (!onVercel) return id;
+      const size = this.vercelSizes.find((s) => s >= w) || 3840;
+      return `/_vercel/image?url=${encodeURIComponent(id)}&w=${size}&q=75`;
+    }
     const size = h ? `&w=${w}&h=${h}&fit=crop` : `&w=${w}`;
-    return `https://images.unsplash.com/${id}?auto=format&q=72${size}&${this.grade}${extra}`;
+    const grade = this.grade ? `&${this.grade}` : "";
+    return `https://images.unsplash.com/${id}?auto=format&q=72${size}${grade}${extra}`;
   },
+
   /** ratio = height / width */
   srcset(id, ratio, widths = [400, 700, 1000, 1400, 1900], extra = "") {
+    if (!id) return "";
     return widths
       .map((w) => `${this.src(id, w, ratio ? Math.round(w * ratio) : 0, extra)} ${w}w`)
       .join(", ");

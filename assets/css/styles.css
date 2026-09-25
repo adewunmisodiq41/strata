@@ -196,6 +196,8 @@ img { background: var(--c-bg-alt); }
 .hero__top { color: #fff; mix-blend-mode: difference; align-items: flex-start; }
 .hero__meta { display: grid; gap: 14px; justify-items: end; text-align: right; }
 .hero__sub { max-width: 250px; font-size: 14.5px; line-height: 1.45; }
+.hero__sub--m { display: none; }
+.is-mono img.ext { filter: grayscale(1) contrast(1.06); }
 .hero__aside { max-width: 360px; overflow: hidden; }
 .hero__ctas { display: flex; gap: 10px; flex-wrap: wrap; }
 .hero__scroll { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 9.5px; opacity: .7; }
@@ -816,7 +818,7 @@ img { background: var(--c-bg-alt); }
   .hero__grid { padding-top: 18px; padding-bottom: 28px; }
   .hero__meta { display: none; }
   .hero__title, .hero__top { color: var(--c-ink); mix-blend-mode: normal; }
-  .hero__aside::before { content: "Modern essentials designed with intention. Explore the latest collection."; display: block; font-size: 14px; margin-bottom: 18px; max-width: 300px; }
+  .hero__sub--m { display: block; font-size: 14px; margin-bottom: 18px; max-width: 300px; }
   .hero__bottom { grid-template-columns: 1fr; gap: 20px; }
   .hero__title { font-size: clamp(40px, 12.4vw, 72px); }
   .hero__ctas { display: grid; grid-template-columns: 1fr 1fr; }

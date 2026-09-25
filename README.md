@@ -10,23 +10,49 @@ python3 -m http.server 5173
 
 Then open http://localhost:5173. Opening `index.html` directly also works.
 
+## Admin (`/admin`)
+
+A password-protected editor for everything on the site:
+
+- **Products:** name, prices and sale prices, category, collection, badge, photos, description, details, sizes, colours, stock per colour and size, featured / new / best-seller flags, and live or draft status
+- **Collections and categories**
+- **Pages:** homepage and About page text and images, and the help and legal pages
+- **FAQ, customer stories and the social gallery**
+- **Settings:** brand details, the announcement bar, contact details, currency and shipping options
+- **Colours:** accent, background, text, and whether photos show in black and white
+
+Press **Save & publish** and the live site updates within about a minute. A copy of every published version is kept under **Backups**, where you can reload an older version or download everything as a file.
+
+### One-time setup on Vercel
+
+1. **Storage:** open the project → **Storage → Create → Blob**, then connect it to this project. This adds `BLOB_READ_WRITE_TOKEN` automatically.
+2. **Password:** open **Settings → Environment Variables** and add `ADMIN_PASSWORD` with a strong password, for all environments.
+3. **Redeploy:** go to **Deployments → ⋯ → Redeploy** so the new settings take effect.
+4. Visit `https://your-site.vercel.app/admin` and sign in.
+
+Changing `ADMIN_PASSWORD` signs out every open admin session.
+
 ## Structure
 
 ```
 index.html              App shell: announcement, header, mobile menu, cart drawer, search overlay, SEO defaults
-assets/css/theme.css    ← ONE place to change colours, type, spacing, motion
-assets/css/styles.css   Components + responsive layouts (desktop / tablet ≤1099 / nav ≤899 / mobile ≤767)
-assets/js/config.js     ← Brand name, contact details, announcement, shipping rates, image CDN
-assets/js/cms.js        ← Products, collections, categories, testimonials, FAQ, social posts
+data/content.json       Default content (used until the first publish from /admin)
+admin/                  The admin editor (index.html, admin.js, admin.css)
+api/                    Vercel functions: auth.js (sign in), content.js (load / publish / backups), upload.js (photos)
+assets/css/theme.css    Default colours, type, spacing and motion (colours can be overridden from /admin)
+assets/css/styles.css   Components + responsive layouts
+assets/js/boot.js       Loads live content (/api/content → data/content.json fallback), applies the theme
+assets/js/cms.js        Turns content into products with variants and stock
+assets/js/config.js     Image pipeline (Unsplash ids, uploaded images via Vercel's image optimiser)
 assets/js/store.js      Cart / wishlist / orders (localStorage) with a Shopify-Cart-shaped API
 assets/js/app.js        Hash router, views, interactions, motion, SEO
+vercel.json             Function, image-optimisation and caching settings
 ```
 
-## Rebranding
+## Running locally
 
-- **Name, email, location, socials, announcement:** `assets/js/config.js`. The logo wordmark, footer, contact and SEO text all read from this file. Also update the static `<title>`/OG tags in `index.html`.
-- **Colours and type:** `assets/css/theme.css`. The accent is `--c-accent`. Setting `--radius` above 0 gives a softer look.
-- **Photography grade:** `IMG.grade` in `config.js` applies one monochrome grade to every image. Set it to `""` to show full colour.
+- **Storefront only:** run `python3 -m http.server 5173`. The site reads `data/content.json`, and `/admin` opens in a "Local preview" mode where you can edit and download `content.json` but can't publish.
+- **With the admin API:** run `npx vercel link`, then `npx vercel env pull`, then `npx vercel dev`.
 
 ## Pages / routes
 
@@ -40,9 +66,9 @@ assets/js/app.js        Hash router, views, interactions, motion, SEO
 | `#/checkout` → `#/order/:id` | Checkout flow and order confirmation |
 | `#/account`, `#/wishlist`, `#/info/:page` | Account, wishlist, shipping / returns / size guide / track order / legal |
 
-## CMS schema (`assets/js/cms.js`)
+## Content schema (`data/content.json`)
 
-**Product:** `slug, sku, name, price, salePrice, category, collection, gender, description, images[], sizes[], colors[{name,hex}], variants[{sku,color,size,quantityAvailable,availableForSale}], stock, status (NEW | BEST SELLER | LIMITED), featured, newArrival, bestSeller, details[], materials, fit, care, createdAt`
+**Product:** `slug, sku, name, published, price, salePrice, category, collection, gender, description, images[], sizes[], colors[{name,hex}], stock{"Colour|Size": qty}, status (NEW | BEST SELLER | LIMITED), featured, newArrival, bestSeller, details[], materials, fit, care, createdAt`. Variants (`sku, color, size, quantityAvailable, availableForSale`) are derived from these fields at load time.
 
 **Collection:** `slug, name, label, status, season, hero, cover, intro, description, notes[]`. A collection's products are the products whose `collection` field matches its slug.
 
@@ -54,16 +80,17 @@ assets/js/app.js        Hash router, views, interactions, motion, SEO
 
 ## Connecting Shopify
 
-1. **Catalogue:** replace the arrays in `cms.js` with a Storefront API query (`products`, `collections`). Field mapping: `handle → slug`, `variants.edges[].node → variants[]`, `selectedOptions → color / size`, `quantityAvailable`, `availableForSale`, `compareAtPrice → price` with `price → salePrice`, and metafields for `details / materials / fit / care / status`.
+1. **Catalogue:** in `boot.js`, replace the content document's `products` / `collections` with a Storefront API query (`products`, `collections`). Field mapping: `handle → slug`, `variants.edges[].node → variants[]`, `selectedOptions → color / size`, `quantityAvailable`, `availableForSale`, `compareAtPrice → price` with `price → salePrice`, and metafields for `details / materials / fit / care / status`.
 2. **Cart:** `Store.add / setQty / remove` in `store.js` map to `cartLinesAdd / cartLinesUpdate / cartLinesRemove`. Keep the cart ID in localStorage.
 3. **Checkout:** in the checkout view, redirect to `cart.checkoutUrl` instead of calling `Store.placeOrder`. Card details are never collected by this storefront.
 4. **Accounts:** the sign-in form in `#/account` is where Shopify Customer Account API OAuth goes.
 5. **Images:** point `IMG.src` at the Shopify CDN (`?width=` and `&height=`) so responsive `srcset` keeps working.
 
-The same boundaries work for Sanity, Contentful or Medusa: only `cms.js` and `store.js` change.
+The same boundaries work for Sanity, Contentful or Medusa: only `boot.js`, `cms.js` and `store.js` change.
 
 ## Before launch
 
 - Placeholder photography comes from Unsplash's CDN. Replace it with your own campaign and product shots, keeping each product's primary and secondary image consistent.
 - Hash routing means search engines see a single URL. For production SEO, render these views with Next.js, Astro or Shopify Hydrogen. The view functions already return `{ title, description, image, ld, html }`, so they port directly. Also add `sitemap.xml` and `robots.txt`.
-- Contact, newsletter and sign-in forms validate on the client but aren't wired to a backend. Connect them to Klaviyo, Shopify Forms or your email provider.
+- Contact, newsletter and customer sign-in forms validate on the client but aren't wired to a backend. Connect them to Klaviyo, Shopify Forms or your email provider.
+- Stock edited in the admin controls what shoppers can add to their bag, but orders don't reduce stock yet. That needs a real checkout (Shopify / Stripe) to report sales back.

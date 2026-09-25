@@ -1,0 +1,11 @@
+{
+  "name": "strata-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@vercel/blob": "^1.1.1"
+  }
+}

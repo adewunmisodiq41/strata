@@ -13,8 +13,8 @@
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isTouch = matchMedia("(hover: none)").matches;
 
-  const catName = (slug) => (C.categories.find((c) => c.slug === slug) || {}).name || slug;
-  const colName = (slug) => (C.collections.find((c) => c.slug === slug) || {}).name || slug;
+  const catName = (slug) => esc((C.categories.find((c) => c.slug === slug) || {}).name || slug);
+  const colName = (slug) => esc((C.collections.find((c) => c.slug === slug) || {}).name || slug);
   const collectionBySlug = (slug) => C.collections.find((c) => c.slug === slug);
 
   const ICON = {
@@ -38,8 +38,12 @@
   /* Image helper — responsive <img> with srcset, lazy loading and decoding */
   /* ---------------------------------------------------------------------- */
   function pic(id, { ratio = 1.25, sizes = "100vw", alt = "", cls = "", eager = false, extra = "", widths } = {}) {
+    if (!id) return "";
     const w = widths || [360, 540, 720, 960, 1280, 1600];
-    return `<img class="${cls}" src="${I.src(id, 720, Math.round(720 * ratio), extra)}" srcset="${I.srcset(id, ratio, w, extra)}" sizes="${sizes}" alt="${esc(alt)}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" onload="this.classList.add('is-loaded')" />`;
+    const ext = I.isExternal(id);
+    if (ext) cls += " ext";
+    const fallback = ext ? ` data-raw="${esc(id)}" onerror="if(this.dataset.raw&&this.src!==this.dataset.raw){this.srcset='';this.src=this.dataset.raw}"` : "";
+    return `<img${fallback} class="${cls}" src="${I.src(id, 720, Math.round(720 * ratio), extra)}" srcset="${I.srcset(id, ratio, w, extra)}" sizes="${sizes}" alt="${esc(alt)}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" onload="this.classList.add('is-loaded')" />`;
   }
 
   /* ---------------------------------------------------------------------- */
@@ -85,7 +89,7 @@
         </div>
         <div class="card__right">
           ${priceHTML(p)}
-          <span class="card__swatches" aria-label="${p.colors.length} colours">${p.colors.map((c) => `<i style="--sw:${c.hex}" title="${c.name}"></i>`).join("")}</span>
+          <span class="card__swatches" aria-label="${p.colors.length} colours">${p.colors.map((c) => `<i style="--sw:${c.hex}" title="${esc(c.name)}"></i>`).join("")}</span>
         </div>
       </div>
     </article>`;
@@ -132,31 +136,35 @@
   /* ---------------------------------------------------------------------- */
   /* Home sections                                                           */
   /* ---------------------------------------------------------------------- */
+  const H = () => (C.pages.home || {});
+  const br = (t) => esc(t).replace(/\n/g, "<br/>");
+  const heroLines = (t) => String(t || "").split("\n").filter(Boolean);
+
   function hero() {
-    const desk = "photo-1559356157-f3315daa41c7", mob = "photo-1688110619871-7ec8ed8d37f9";
+    const h = H(), desk = h.heroImage, mob = h.heroImageMobile || h.heroImage;
+    const ext = I.isExternal(desk) ? "ext" : "";
     return `
-    <section class="hero" aria-label="AW26 campaign">
+    <section class="hero" aria-label="${esc(h.heroKicker)} campaign">
       <div class="hero__media" data-hero-media>
         <picture>
           <source media="(max-width: 767px)" srcset="${I.srcset(mob, 1.6, [480, 720, 960, 1200])}" sizes="100vw" />
-          <img src="${I.src(desk, 1400)}" srcset="${I.srcset(desk, 0, [900, 1400, 1800, 2200, 2800])}" sizes="100vw" alt="Model crouching on a concrete ledge wearing the Vault Down Jacket against a pale sky" fetchpriority="high" decoding="async" />
+          <img class="${ext}" src="${I.src(desk, 1400)}" srcset="${I.srcset(desk, 0, [900, 1400, 1800, 2200, 2800])}" sizes="100vw" alt="${esc(h.heroAlt)}" fetchpriority="high" decoding="async" />
         </picture>
       </div>
       <div class="hero__grid">
         <div class="hero__top">
-          <p class="label hero__kicker" data-in="1"><span>AW26</span><span class="hero__sep"></span><span>Campaign 01</span></p>
-          <div class="hero__meta" data-in="2"><p class="label">Form / Function / Identity</p><p class="hero__sub">Modern essentials designed with intention. Explore the latest collection.</p></div>
+          <p class="label hero__kicker" data-in="1"><span>${esc(h.heroKicker)}</span>${h.heroKicker2 ? `<span class="hero__sep"></span><span>${esc(h.heroKicker2)}</span>` : ""}</p>
+          <div class="hero__meta" data-in="2"><p class="label">${esc(h.heroMeta)}</p><p class="hero__sub">${esc(h.heroSub)}</p></div>
         </div>
         <div class="hero__bottom">
           <h1 class="display hero__title">
-            <span class="line"><span data-in="2">Built for</span></span>
-            <span class="line"><span data-in="3">the way</span></span>
-            <span class="line"><span data-in="4">you move.</span></span>
+            ${heroLines(h.heroTitle).map((l, i) => `<span class="line"><span data-in="${Math.min(i + 2, 4)}">${esc(l)}</span></span>`).join("")}
           </h1>
           <div class="hero__aside" data-in="4">
+            <p class="hero__sub hero__sub--m">${esc(h.heroSub)}</p>
             <div class="hero__ctas">
-              <a class="btn btn--dark" href="#/shop?new=1">Shop New Arrivals</a>
-              <a class="btn btn--ghost" href="#/collections/obsidian-series">Explore Collection</a>
+              ${h.ctaPrimary?.label ? `<a class="btn btn--dark" href="${esc(h.ctaPrimary.href)}">${esc(h.ctaPrimary.label)}</a>` : ""}
+              ${h.ctaSecondary?.label ? `<a class="btn btn--ghost" href="${esc(h.ctaSecondary.href)}">${esc(h.ctaSecondary.label)}</a>` : ""}
             </div>
           </div>
         </div>
@@ -166,25 +174,24 @@
   }
 
   function statement() {
+    const h = H();
     return `
     <section class="statement wrap">
-      <div class="statement__label label" data-reveal>( 01 ) — The Studio</div>
+      <div class="statement__label label" data-reveal>${esc(h.statementLabel)}</div>
       <h2 class="display statement__title" data-reveal>
-        Designed for people <br class="br-d" />who move <em>different.</em>
+        ${br(h.statementTitle)} ${h.statementAccent ? `<em>${esc(h.statementAccent)}</em>` : ""}
       </h2>
       <div class="statement__row">
         <figure class="statement__img media" data-reveal="img" data-parallax="-0.06">
-          ${pic("photo-1787044817434-b6d1f927ac21", { ratio: 1.25, sizes: "(min-width: 768px) 26vw, 60vw", alt: "Back view of a model in a black tailored jacket on a white background" })}
+          ${pic(h.statementImage, { ratio: 1.25, sizes: "(min-width: 768px) 26vw, 60vw", alt: "" })}
         </figure>
         <div class="statement__copy" data-reveal>
-          <p class="lead">${esc(B.name)} makes a small, considered wardrobe: heavyweight basics, precise outerwear and tailoring that doesn't ask you to sit still.</p>
-          <p>Every piece is developed in our London studio, cut from fabrics we'd wear ourselves and produced in limited runs with partner mills in Portugal, Italy and Japan. No seasons of filler, no loud logos — just clothes built in layers, designed to be worn hard and kept for years.</p>
+          <p class="lead">${esc(h.statementLead)}</p>
+          <p>${br(h.statementBody)}</p>
           <a class="link-arrow" href="#/about">Our story ${ICON.arrow}</a>
         </div>
         <dl class="statement__facts" data-reveal>
-          <div><dt>Heaviest fleece</dt><dd>520<small>gsm</small></dd></div>
-          <div><dt>Partner mills</dt><dd>07</dd></div>
-          <div><dt>Run size, per style</dt><dd>&lt;400</dd></div>
+          ${(h.facts || []).map((f) => `<div><dt>${esc(f.label)}</dt><dd>${esc(f.value)}${f.unit ? `<small>${esc(f.unit)}</small>` : ""}</dd></div>`).join("")}
         </dl>
       </div>
     </section>`;
@@ -196,16 +203,16 @@
     const [women, men, ...rest] = C.categories;
     const big = (c, i) => `
       <a class="cat cat--big" href="${href(c)}" data-reveal="img">
-        <div class="cat__media">${pic(c.image, { ratio: 1.2, sizes: "(min-width: 768px) 50vw, 100vw", alt: `${c.name} — ${c.description}` })}</div>
+        <div class="cat__media">${pic(c.image, { ratio: 1.2, sizes: "(min-width: 768px) 50vw, 100vw", alt: `${esc(c.name)} — ${c.description}` })}</div>
         <div class="cat__body">
           <span class="label">0${i + 1}</span>
-          <h3 class="display cat__title">${c.name}</h3>
+          <h3 class="display cat__title">${esc(c.name)}</h3>
           <span class="cat__meta label">${count(c.slug)} Products <span class="cat__arrow">${ICON.arrow}</span></span>
         </div>
       </a>`;
     return `
     <section class="section cats">
-      <div class="wrap">${sectionHead("( 02 ) — Categories", "Shop by Category", { href: "#/shop", text: "View all" })}</div>
+      <div class="wrap">${sectionHead("( 02 ) — Categories", esc(H().categoriesTitle || "Shop by Category"), { href: "#/shop", text: "View all" })}</div>
       <div class="wrap cats__big">${big(women, 0)}${big(men, 1)}</div>
       <div class="rail" data-rail>
         <div class="rail__track" data-rail-track>
@@ -213,7 +220,7 @@
           <a class="cat cat--small" href="${href(c)}" data-reveal="img">
             <div class="cat__media">${pic(c.image, { ratio: 1.3, sizes: "(min-width: 1100px) 24vw, (min-width: 768px) 40vw, 70vw", alt: c.description })}</div>
             <div class="cat__row">
-              <div><h3 class="cat__name">${c.name}</h3><span class="label muted">${count(c.slug)} Products</span></div>
+              <div><h3 class="cat__name">${esc(c.name)}</h3><span class="label muted">${count(c.slug)} Products</span></div>
               <span class="cat__arrow">${ICON.arrow}</span>
             </div>
           </a>`).join("")}
@@ -230,17 +237,19 @@
   }
 
   function dropSection() {
-    const [a, b] = [collectionBySlug("obsidian-series"), collectionBySlug("future-form")];
+    const picks = (H().dropCollections || []).map(collectionBySlug).filter(Boolean);
+    const [a, b] = picks.length >= 2 ? picks : C.collections.slice(0, 2);
+    if (!a || !b) return "";
     return `
     <section class="drop">
       <div class="wrap">
-        ${sectionHead("( 03 ) — AW26", "The Drop", { href: "#/collections", text: "View all collections" })}
+        ${sectionHead("( 03 ) — Collections", esc(H().dropTitle || "The Drop"), { href: "#/collections", text: "View all collections" })}
         <div class="drop__grid">
           <a class="drop__panel drop__panel--a" href="#/collections/${a.slug}" data-reveal="img">
             <div class="drop__media" data-parallax="0.05">${pic(a.cover, { ratio: 1.2, sizes: "(min-width: 768px) 58vw, 100vw", alt: `${a.name} campaign — model in an oversized black coat`, extra: "&crop=faces" })}</div>
             <div class="drop__text">
-              <p class="label">${a.label} <span class="dot"></span> ${a.season}</p>
-              <h3 class="display drop__title">${a.name.replace(" ", "<br/>")}</h3>
+              <p class="label">${esc(a.label)} <span class="dot"></span> ${esc(a.season)}</p>
+              <h3 class="display drop__title">${esc(a.name).replace(" ", "<br/>")}</h3>
               <span class="btn-line">Shop Now ${ICON.arrow}</span>
             </div>
             <span class="drop__index label">01 / 02</span>
@@ -249,8 +258,8 @@
             <a class="drop__panel drop__panel--b" href="#/collections/${b.slug}" data-reveal="img">
               <div class="drop__media" data-parallax="0.08">${pic(b.cover, { ratio: 1.3, sizes: "(min-width: 768px) 38vw, 100vw", alt: `${b.name} campaign — model in unstructured white tailoring` })}</div>
               <div class="drop__text">
-                <p class="label">${b.label}</p>
-                <h3 class="display drop__title">${b.name.replace(" ", "<br/>")}</h3>
+                <p class="label">${esc(b.label)}</p>
+                <h3 class="display drop__title">${esc(b.name).replace(" ", "<br/>")}</h3>
                 <span class="btn-line">Explore ${ICON.arrow}</span>
               </div>
               <span class="drop__index label">02 / 02</span>
@@ -266,7 +275,7 @@
     return `
     <section class="section wrap" id="featured">
       <div class="shead" data-reveal>
-        <div><p class="label shead__kicker">( 04 ) — Shop</p><h2 class="h2">Featured Products</h2></div>
+        <div><p class="label shead__kicker">( 04 ) — Shop</p><h2 class="h2">${esc(H().featuredTitle || "Featured Products")}</h2></div>
         <div class="tabs" role="tablist" aria-label="Filter featured products">
           <button role="tab" aria-selected="true" data-feat="featured">Featured</button>
           <button role="tab" aria-selected="false" data-feat="new">New</button>
@@ -285,7 +294,7 @@
   function storiesSection() {
     return `
     <section class="stories">
-      <div class="wrap">${sectionHead("( 05 ) — Customer Stories", "What They're Saying", { href: B.socialLinks.instagram, text: `Tag ${B.social}` })}</div>
+      <div class="wrap">${sectionHead("( 05 ) — Customer Stories", esc(H().storiesTitle || "What They're Saying"), { href: B.socialLinks.instagram, text: `Tag ${B.social}` })}</div>
       <div class="rail rail--dark" data-rail>
         <div class="rail__track" data-rail-track>
           ${C.testimonials.map((t) => {
@@ -325,7 +334,7 @@
     <section class="section wrap faq-sec">
       <div class="faq-sec__head" data-reveal>
         <p class="label shead__kicker">( 06 ) — Help</p>
-        <h2 class="h2">Frequently<br/>Asked Questions</h2>
+        <h2 class="h2">${br(H().faqTitle || "Frequently\nAsked Questions")}</h2>
         <p class="muted">Can't find what you need? <a class="u" href="#/contact">Contact the studio</a> — we reply within 24 hours.</p>
       </div>
       <div data-reveal>${faqList(C.faq)}</div>
@@ -351,7 +360,7 @@
     <section class="section wrap contact" id="contact">
       <div class="contact__info" data-reveal>
         <p class="label shead__kicker">${num}</p>
-        <h2 class="h2">Get in Touch</h2>
+        <h2 class="h2">${esc(H().contactTitle || "Get in Touch")}</h2>
         <dl class="contact__dl">
           <div><dt class="label accent">Location</dt><dd>${esc(B.location.line1)}<br/>${esc(B.location.line2)}<br/><span class="muted">${esc(B.location.est)}</span></dd></div>
           <div><dt class="label accent">Office Hours</dt><dd>${esc(B.hours.days)}<br/>${esc(B.hours.time)}</dd></div>
@@ -360,7 +369,7 @@
         </dl>
       </div>
       <form class="form contact__form" data-form="contact" novalidate data-reveal>
-        <p class="contact__intro">Questions about an order, sizing or a collaboration? Send us a note.</p>
+        <p class="contact__intro">${esc(H().contactIntro)}</p>
         <div class="field"><label for="c-name">Name</label><input id="c-name" name="name" autocomplete="name" required minlength="2" /><span class="field__err" aria-live="polite"></span></div>
         <div class="field"><label for="c-email">Email</label><input id="c-email" name="email" type="email" autocomplete="email" required /><span class="field__err" aria-live="polite"></span></div>
         <div class="field"><label for="c-msg">Message</label><textarea id="c-msg" name="message" rows="5" required minlength="10"></textarea><span class="field__err" aria-live="polite"></span></div>
@@ -375,8 +384,8 @@
     <section class="newsletter">
       <div class="wrap newsletter__inner" data-reveal>
         <p class="label">Newsletter</p>
-        <h2 class="display newsletter__title">Be first to know</h2>
-        <p class="muted">Get early access to new drops, exclusive releases and selected offers.</p>
+        <h2 class="display newsletter__title">${esc(H().newsletterTitle || "Be first to know")}</h2>
+        <p class="muted">${esc(H().newsletterText)}</p>
         <form class="inline-form" data-form="newsletter" novalidate>
           <label for="nl-email" class="sr-only">Your email address</label>
           <input id="nl-email" name="email" type="email" placeholder="Your email address" autocomplete="email" required />
@@ -617,7 +626,7 @@
     if (!p) return views.notFound();
     const col = collectionBySlug(p.collection);
     const related = C.products.filter((x) => x.slug !== p.slug && (x.collection === p.collection || x.category === p.category)).slice(0, 4);
-    const images = [...p.images, p.images[1] || p.images[0]];
+    const images = p.images.length >= 3 ? p.images : [...p.images, p.images[1] || p.images[0]].filter(Boolean);
     const gallery = images.map((id, i) => `
       <figure class="pgal__item ${i === 2 ? "pgal__item--detail" : ""}" data-zoom>
         ${pic(id, { ratio: 1.3333, sizes: "(min-width: 1100px) 30vw, (min-width: 768px) 55vw, 100vw", alt: i === 2 ? `${p.name} — fabric detail` : `${p.name}, view ${i + 1}`, eager: i === 0, extra: i === 2 ? "&crop=focalpoint&fp-x=.5&fp-y=.5&fp-z=2.4" : "" })}
@@ -650,7 +659,7 @@
               <fieldset class="opt">
                 <legend class="opt__legend"><span class="label">Colour</span><span class="opt__val" data-color-label>${p.colors[0].name}</span></legend>
                 <div class="swatches">
-                  ${p.colors.map((c, i) => `<label class="swatch" title="${c.name}"><input type="radio" name="color" value="${c.name}" ${i === 0 ? "checked" : ""} /><i style="--sw:${c.hex}"></i><span class="sr-only">${c.name}</span></label>`).join("")}
+                  ${p.colors.map((c, i) => `<label class="swatch" title="${esc(c.name)}"><input type="radio" name="color" value="${esc(c.name)}" ${i === 0 ? "checked" : ""} /><i style="--sw:${c.hex}"></i><span class="sr-only">${esc(c.name)}</span></label>`).join("")}
                 </div>
               </fieldset>
               <fieldset class="opt">
@@ -784,10 +793,10 @@
           const n = C.products.filter((p) => p.collection === c.slug).length;
           return `
           <a class="cindex__item ${i % 2 ? "is-rev" : ""}" href="#/collections/${c.slug}">
-            <div class="cindex__media media" data-reveal="img">${pic(c.cover, { ratio: 1.15, sizes: "(min-width: 768px) 55vw, 100vw", alt: `${c.name} campaign image` })}</div>
+            <div class="cindex__media media" data-reveal="img">${pic(c.cover, { ratio: 1.15, sizes: "(min-width: 768px) 55vw, 100vw", alt: `${esc(c.name)} campaign image` })}</div>
             <div class="cindex__text" data-reveal>
-              <p class="label muted">${String(i + 1).padStart(2, "0")} — ${c.label}</p>
-              <h2 class="display cindex__title">${c.name}</h2>
+              <p class="label muted">${String(i + 1).padStart(2, "0")} — ${esc(c.label)}</p>
+              <h2 class="display cindex__title">${esc(c.name)}</h2>
               <p class="cindex__intro">${esc(c.intro)}</p>
               <p class="muted">${esc(c.description)}</p>
               <span class="link-arrow">View ${n} pieces ${ICON.arrow}</span>
@@ -804,20 +813,20 @@
     const idx = C.collections.indexOf(c);
     const next = C.collections[(idx + 1) % C.collections.length];
     return {
-      title: `${c.name} — ${c.season} | ${B.name}`,
+      title: `${esc(c.name)} — ${esc(c.season)} | ${B.name}`,
       description: c.description,
       image: I.src(c.hero, 1200, 630),
       ld: { "@context": "https://schema.org", "@type": "CollectionPage", name: c.name, description: c.description, hasPart: list.map((p) => ({ "@type": "Product", name: p.name, url: `${B.url}/#/product/${p.slug}` })) },
       html: `
       <section class="chero">
-        <div class="chero__media" data-hero-media>${pic(c.hero, { ratio: 0.56, sizes: "100vw", alt: `${c.name} campaign`, eager: true, widths: [800, 1200, 1600, 2200] })}</div>
+        <div class="chero__media" data-hero-media>${pic(c.hero, { ratio: 0.56, sizes: "100vw", alt: `${esc(c.name)} campaign`, eager: true, widths: [800, 1200, 1600, 2200] })}</div>
         <div class="chero__text wrap">
-          <p class="label" data-in="1">${c.label} <span class="dot"></span> ${c.season}</p>
-          <h1 class="display chero__title"><span class="line"><span data-in="2">${c.name}</span></span></h1>
+          <p class="label" data-in="1">${esc(c.label)} <span class="dot"></span> ${esc(c.season)}</p>
+          <h1 class="display chero__title"><span class="line"><span data-in="2">${esc(c.name)}</span></span></h1>
         </div>
       </section>
       <nav class="cnav wrap" aria-label="Collections">
-        ${C.collections.map((x) => `<a href="#/collections/${x.slug}" class="${x.slug === c.slug ? "is-on" : ""}" ${x.slug === c.slug ? 'aria-current="page"' : ""}>${x.name}</a>`).join("")}
+        ${C.collections.map((x) => `<a href="#/collections/${x.slug}" class="${x.slug === c.slug ? "is-on" : ""}" ${x.slug === c.slug ? 'aria-current="page"' : ""}>${esc(x.name)}</a>`).join("")}
       </nav>
       <section class="cintro wrap">
         <h2 class="cintro__lead" data-reveal>${esc(c.intro)}</h2>
@@ -827,14 +836,14 @@
         </div>
       </section>
       <section class="section wrap">
-        <div class="shead" data-reveal><div><p class="label shead__kicker">${list.length} Pieces</p><h2 class="h2">Shop ${c.name}</h2></div><a class="link-arrow" href="#/shop?col=${c.slug}">Filter in shop ${ICON.arrow}</a></div>
+        <div class="shead" data-reveal><div><p class="label shead__kicker">${list.length} Pieces</p><h2 class="h2">Shop ${esc(c.name)}</h2></div><a class="link-arrow" href="#/shop?col=${c.slug}">Filter in shop ${ICON.arrow}</a></div>
         ${grid(list)}
       </section>
       <a class="cnext" href="#/collections/${next.slug}">
         <div class="cnext__media" data-parallax="0.08">${pic(next.cover, { ratio: 0.5, sizes: "100vw", alt: "" })}</div>
         <div class="cnext__text wrap">
           <span class="label">Next collection</span>
-          <span class="display cnext__title">${next.name}</span>
+          <span class="display cnext__title">${esc(next.name)}</span>
           <span class="cnext__arrow">${ICON.arrow}</span>
         </div>
       </a>`,
@@ -842,64 +851,63 @@
   };
 
   /* ------------------------------ ABOUT --------------------------------- */
-  views.about = () => ({
+  views.about = () => {
+    const A = C.pages.about || {};
+    const gallery = (A.gallery || []).filter(Boolean);
+    return {
     title: `About — ${B.name}`,
-    description: `The story, philosophy and design approach behind ${B.name}.`,
+    description: A.storyLead || `The story behind ${B.name}.`,
     html: `
       <section class="about-hero wrap">
-        <p class="label" data-in="1">About ${B.name} — ${esc(B.location.est)}</p>
+        <p class="label" data-in="1">${esc(A.kicker)}</p>
         <h1 class="display about-hero__title">
-          <span class="line"><span data-in="2">Built in</span></span>
-          <span class="line"><span data-in="3">layers.</span></span>
+          ${heroLines(A.title).map((l, i) => `<span class="line"><span data-in="${Math.min(i + 2, 4)}">${esc(l)}</span></span>`).join("")}
         </h1>
       </section>
       <section class="about-split wrap">
-        <figure class="about-split__a media" data-reveal="img" data-parallax="0.05">${pic("photo-1592833578500-1082e18665a3", { ratio: 1.3, sizes: "(min-width: 768px) 55vw, 100vw", alt: "Model in an oversized black coat against a white studio wall" })}</figure>
+        <figure class="about-split__a media" data-reveal="img" data-parallax="0.05">${pic(A.storyImage, { ratio: 1.3, sizes: "(min-width: 768px) 55vw, 100vw", alt: "" })}</figure>
         <div class="about-split__text" data-reveal>
           <p class="label muted">01 — The Story</p>
-          <p class="lead">${B.name} started in 2021 in a shared studio in East London, with one heavyweight tee and a refusal to make anything we wouldn't wear every day.</p>
-          <p>Strata — layers of rock laid down over time. That's how we think about a wardrobe: built slowly, one essential on top of another, each piece strong enough to stand alone. We still design every garment in the same studio, still fit every sample on real bodies, and still produce in runs small enough that we know the people who make them.</p>
+          <p class="lead">${esc(A.storyLead)}</p>
+          <p>${br(A.storyBody)}</p>
         </div>
-        <figure class="about-split__b media" data-reveal="img" data-parallax="-0.08">${pic("photo-1762354766704-cb386e60dfe9", { ratio: 1.25, sizes: "(min-width: 768px) 25vw, 60vw", alt: "Close-up of heavyweight knitted fabric" })}</figure>
+        ${A.storyDetailImage ? `<figure class="about-split__b media" data-reveal="img" data-parallax="-0.08">${pic(A.storyDetailImage, { ratio: 1.25, sizes: "(min-width: 768px) 25vw, 60vw", alt: "" })}</figure>` : ""}
       </section>
       <section class="about-full" data-reveal="img">
-        <div class="about-full__media" data-parallax="0.1">${pic("photo-1520529890308-f503006340b4", { ratio: 0.5, sizes: "100vw", alt: "Minimal concrete architecture", widths: [800, 1200, 1600, 2200] })}</div>
-        <p class="display about-full__quote wrap">Nothing extra.<br/>Nothing missing.</p>
+        <div class="about-full__media" data-parallax="0.1">${pic(A.quoteImage, { ratio: 0.5, sizes: "100vw", alt: "", widths: [800, 1200, 1600, 2200] })}</div>
+        <p class="display about-full__quote wrap">${br(A.quote)}</p>
       </section>
       <section class="section wrap principles">
-        <div class="principles__head" data-reveal><p class="label muted">02 — Philosophy & Approach</p><h2 class="h2">How we design</h2></div>
+        <div class="principles__head" data-reveal><p class="label muted">02 — Philosophy & Approach</p><h2 class="h2">${esc(A.principlesTitle)}</h2></div>
         <ol class="principles__list">
-          <li data-reveal><span class="principles__n">01</span><h3>Weight is a feature</h3><p>We start with fabric. Heavy jersey, dense fleece, double-faced wool — materials with enough body to hold a silhouette without structure.</p></li>
-          <li data-reveal><span class="principles__n">02</span><h3>Cut for movement</h3><p>Dropped shoulders, articulated knees, fluid tailoring. Every pattern is tested in motion, not on a mannequin.</p></li>
-          <li data-reveal><span class="principles__n">03</span><h3>Quiet identity</h3><p>No oversized logos. The brand lives in the proportion, the collar, the weight of the hem — details you recognise without reading.</p></li>
-          <li data-reveal><span class="principles__n">04</span><h3>Made to be kept</h3><p>Small runs, no discount cycles, restocks of the pieces that work. We would rather make less and make it last.</p></li>
+          ${(A.principles || []).map((pr, i) => `<li data-reveal><span class="principles__n">${String(i + 1).padStart(2, "0")}</span><h3>${esc(pr.title)}</h3><p>${esc(pr.body)}</p></li>`).join("")}
         </ol>
       </section>
       <section class="about-quality">
         <div class="wrap about-quality__inner">
           <div data-reveal>
             <p class="label">03 — Quality Statement</p>
-            <h2 class="display about-quality__title">Every piece is made to outlast the season it was designed for.</h2>
+            <h2 class="display about-quality__title">${esc(A.qualityTitle)}</h2>
           </div>
           <div class="about-quality__side" data-reveal>
-            <p>We work with seven family-run mills and factories in Portugal, Italy and Japan, audited annually for fair wages and working conditions. Our cottons are organic, our down is RDS-certified, our wools are traceable to source.</p>
+            <p>${br(A.qualityBody)}</p>
             <dl class="about-quality__stats">
-              <div><dt class="label">Organic or recycled fibre</dt><dd>86%</dd></div>
-              <div><dt class="label">Garment wash tests per style</dt><dd>25</dd></div>
-              <div><dt class="label">Repairs offered, for life</dt><dd>Free</dd></div>
+              ${(A.stats || []).map((st) => `<div><dt class="label">${esc(st.label)}</dt><dd>${esc(st.value)}</dd></div>`).join("")}
             </dl>
           </div>
         </div>
       </section>
+      ${gallery.length ? `
       <section class="section wrap">
-        ${sectionHead("04 — Campaign", "AW26, in pictures", { href: "#/collections", text: "Explore collections" })}
+        ${sectionHead("04 — Campaign", esc(A.galleryTitle), { href: "#/collections", text: "Explore collections" })}
         <div class="about-gallery">
-          ${["photo-1603189343302-e603f7add05a", "photo-1616577711667-3da65b20c36a", "photo-1659522761084-79196b64abe4", "photo-1602706294170-1fed8eecd9f9"].map((id, i) => `
+          ${gallery.slice(0, 4).map((id, i) => `
             <figure class="about-gallery__item about-gallery__item--${i + 1} media" data-reveal="img">${pic(id, { ratio: [1.6, 1.25, 1.6, 1.25][i], sizes: "(min-width: 768px) 33vw, 50vw", alt: "Campaign photograph" })}</figure>`).join("")}
         </div>
-      </section>
+      </section>` : ""}
       ${newsletterSection()}`,
-  });
+    };
+  };
 
   /* ---------------------------- CONTACT / FAQ --------------------------- */
   views.contact = () => ({
@@ -1047,27 +1055,23 @@
   };
 
   /* ---------------------------- INFO PAGES ------------------------------ */
-  const INFO = {
-    shipping: ["Shipping", [["Processing", "Orders placed before 2 PM GMT on business days ship the same day from our London studio."], ["Rates", `Standard (4–7 business days): free over ${money(B.freeShippingThreshold)}, otherwise ${money(B.shippingRates[0].price)}. Express (1–3 business days): ${money(B.shippingRates[1].price)}.`], ["Duties", "Duties and taxes are included for the UK, EU, US, Canada, Australia and Japan. Other destinations may be charged local import duties on delivery."]]],
-    returns: ["Returns", [["30-day returns", "Return unworn items with tags attached within 30 days of delivery."], ["Exchanges", "Exchanges are free. We'll ship the new size as soon as your return is scanned by the carrier."], ["Refunds", "Refunds are $8 and are issued to the original payment method within 5 business days of the return arriving at our studio."]]],
-    "size-guide": ["Size Guide", [["How our clothes fit", "Most tops are cut boxy or oversized. Take your usual size for the intended fit, or size down for a closer line. Every product page lists the fit and what size the model is wearing."], ["Measurements", "Chest: XS 84–88 · S 88–94 · M 94–100 · L 100–106 · XL 106–112 · XXL 112–120 (cm)."], ["Still unsure?", `Email ${B.email} with your height and usual size and we'll recommend a size within 24 hours.`]]],
-    "track-order": ["Track Order", [["Where's my order?", "Your shipping confirmation email contains a live tracking link. Orders placed in this browser are listed in your Account."]]],
-    privacy: ["Privacy Policy", [["What we collect", "We collect only what we need to process your order and, if you opt in, send you news about drops."], ["How we use it", "Your data is never sold. It is shared only with the payment, shipping and email providers that make the service work."], ["Your rights", `You can request access to or deletion of your data at any time: ${B.email}.`]]],
-    terms: ["Terms", [["Orders", "All orders are subject to availability and confirmation of the order price."], ["Pricing", "Prices are shown in USD and include duties for supported regions."], ["Governing law", "These terms are governed by the laws of England and Wales."]]],
-    cookies: ["Cookie Policy", [["Essential storage", "We use your browser's local storage to remember your bag and wishlist. No third-party advertising cookies are set by this storefront."]]],
-  };
+  const INFO = new Proxy({}, {
+    get: (_, k) => { const pg = (C.pages.info || {})[k]; return pg && [pg.title, (pg.blocks || []).map((bl) => [bl.heading, bl.body])]; },
+    ownKeys: () => Object.keys(C.pages.info || {}),
+    getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+  });
   views.info = ([slug]) => {
     const page = INFO[slug];
     if (!page) return views.notFound();
     return {
-      title: `${page[0]} — ${B.name}`, description: page[1][0][1],
+      title: `${esc(page[0])} — ${B.name}`, description: page[1][0]?.[1] || "",
       html: `
-      <section class="page-head wrap"><nav class="crumbs label" aria-label="Breadcrumb"><a href="#/">Home</a><span>/</span><span aria-current="page">${page[0]}</span></nav>
-      <div class="page-head__row"><h1 class="display page-title">${page[0]}</h1></div></section>
+      <section class="page-head wrap"><nav class="crumbs label" aria-label="Breadcrumb"><a href="#/">Home</a><span>/</span><span aria-current="page">${esc(page[0])}</span></nav>
+      <div class="page-head__row"><h1 class="display page-title">${esc(page[0])}</h1></div></section>
       <section class="wrap info">
-        <nav class="info__nav label" aria-label="Customer care">${Object.entries(INFO).map(([k, v]) => `<a href="#/info/${k}" class="${k === slug ? "is-on" : ""}">${v[0]}</a>`).join("")}<a href="#/faq">FAQs</a></nav>
+        <nav class="info__nav label" aria-label="Customer care">${Object.entries(INFO).map(([k, v]) => `<a href="#/info/${k}" class="${k === slug ? "is-on" : ""}">${esc(v[0])}</a>`).join("")}<a href="#/faq">FAQs</a></nav>
         <div class="info__body">
-          ${page[1].map(([h, p]) => `<div class="info__block" data-reveal><h2 class="label">${h}</h2><p>${esc(p)}</p></div>`).join("")}
+          ${page[1].map(([h, p]) => `<div class="info__block" data-reveal><h2 class="label">${esc(h)}</h2><p>${esc(p)}</p></div>`).join("")}
           ${slug === "track-order" ? `
           <form class="form" data-form="track" novalidate>
             <div class="form__2">
@@ -1208,7 +1212,7 @@
       sBody.innerHTML = `
         <div class="search__idle wrap">
           <div><p class="label muted">Popular searches</p><div class="search__chips">${["Coat", "Hoodie", "Heavyweight tee", "Trouser", "Black", "Leather"].map((t) => `<button class="fchip" data-sq="${t}">${t}</button>`).join("")}</div></div>
-          <div><p class="label muted">Collections</p><ul class="search__cols">${C.collections.map((c) => `<li><a href="#/collections/${c.slug}" data-close-search>${c.name}</a></li>`).join("")}</ul></div>
+          <div><p class="label muted">Collections</p><ul class="search__cols">${C.collections.map((c) => `<li><a href="#/collections/${c.slug}" data-close-search>${esc(c.name)}</a></li>`).join("")}</ul></div>
           <div class="search__trend"><p class="label muted">Trending now</p><div class="search__results">${C.products.filter((p) => p.bestSeller).slice(0, 4).map(searchItem).join("")}</div></div>
         </div>`;
       return;
@@ -1218,10 +1222,10 @@
     sBody.innerHTML = hits.length || cols.length
       ? `<div class="wrap">
           <div class="search__meta"><p class="label muted">${hits.length} ${hits.length === 1 ? "product" : "products"} for “${esc(q)}”</p>${hits.length ? `<a class="link-arrow" href="#/shop?q=${encodeURIComponent(q)}" data-close-search>View all results ${ICON.arrow}</a>` : ""}</div>
-          ${cols.length ? `<div class="search__chips">${cols.map((c) => `<a class="fchip" href="#/collections/${c.slug}" data-close-search>Collection — ${c.name}</a>`).join("")}</div>` : ""}
+          ${cols.length ? `<div class="search__chips">${cols.map((c) => `<a class="fchip" href="#/collections/${c.slug}" data-close-search>Collection — ${esc(c.name)}</a>`).join("")}</div>` : ""}
           <div class="search__results">${hits.slice(0, 8).map(searchItem).join("")}</div>
         </div>`
-      : `<div class="wrap search__empty"><p class="display empty__title">No results for “${esc(q)}”</p><p class="muted">Check the spelling, or try a broader term like “coat”, “tee” or “black”.</p><div class="search__chips">${C.categories.map((c) => `<a class="fchip" href="#/shop?${c.type === "gender" ? "dept" : "cat"}=${c.slug}" data-close-search>${c.name}</a>`).join("")}</div></div>`;
+      : `<div class="wrap search__empty"><p class="display empty__title">No results for “${esc(q)}”</p><p class="muted">Check the spelling, or try a broader term like “coat”, “tee” or “black”.</p><div class="search__chips">${C.categories.map((c) => `<a class="fchip" href="#/shop?${c.type === "gender" ? "dept" : "cat"}=${c.slug}" data-close-search>${esc(c.name)}</a>`).join("")}</div></div>`;
   }
   const searchItem = (p) => `
     <a class="sitem" href="#/product/${p.slug}" data-close-search>
