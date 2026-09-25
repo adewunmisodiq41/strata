@@ -562,7 +562,7 @@
       case "clear-img": set(a.dataset.path, ""); render(); break;
       case "img-remove": { const l = get(a.dataset.path); l.splice(i, 1); set(a.dataset.path, l); render(); break; }
       case "img-move": { const l = get(a.dataset.path), j = i + +a.dataset.d; [l[i], l[j]] = [l[j], l[i]]; set(a.dataset.path, l); render(); break; }
-      case "reset": if (confirm("Replace everything in the editor with the original demo content? (Nothing goes live until you publish.)")) { state.content = await (await fetch("../data/content.json", { cache: "no-store" })).json(); state.edit = null; render(); toast("Demo content loaded — publish to make it live"); } break;
+      case "reset": if (confirm("Replace everything in the editor with the original demo content? (Nothing goes live until you publish.)")) { state.content = await (await fetch("/data/content.json", { cache: "no-store" })).json(); state.edit = null; render(); toast("Demo content loaded — publish to make it live"); } break;
       case "restore": if (confirm("Load this version into the editor? (Nothing goes live until you publish.)")) { state.content = await (await fetch(a.dataset.url)).json(); state.edit = null; render(); toast("Version loaded — publish to make it live"); } break;
     }
   });
@@ -735,7 +735,7 @@
   async function loadContent() {
     let content;
     if (state.mode === "live") content = await api("/api/content?fresh=1");
-    else content = await (await fetch("../data/content.json", { cache: "no-store" })).json();
+    else content = await (await fetch("/data/content.json", { cache: "no-store" })).json();
     state.content = content;
     state.content.pages = state.content.pages || {};
     state.savedJSON = JSON.stringify(content);
