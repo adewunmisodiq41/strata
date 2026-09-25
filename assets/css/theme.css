@@ -1,0 +1,44 @@
+/* ==========================================================================
+   STRATA — THEME CONFIGURATION
+   Change the brand's entire colour + type system from this one file.
+   ========================================================================== */
+
+:root {
+  /* Colour */
+  --c-bg:        #F3F1EC;   /* warm off-white page background */
+  --c-bg-alt:    #EAE7E0;   /* secondary surfaces (image placeholders, inputs) */
+  --c-ink:       #121211;   /* near-black text */
+  --c-ink-2:     #3A3935;   /* strong secondary text */
+  --c-muted:     #7A776F;   /* muted gray metadata */
+  --c-line:      rgba(18, 18, 17, 0.12);  /* hairline borders */
+  --c-line-soft: rgba(18, 18, 17, 0.07);
+  --c-accent:    #B23A1E;   /* single restrained brand accent (oxide red) */
+  --c-on-accent: #FFFFFF;
+
+  /* Dark sections (drop, stories, footer) */
+  --c-dark:      #121211;
+  --c-dark-2:    #1B1B19;
+  --c-on-dark:   #F3F1EC;
+  --c-on-dark-muted: rgba(243, 241, 236, 0.56);
+  --c-dark-line: rgba(243, 241, 236, 0.14);
+
+  /* Type */
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body:    "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --display-stretch: 125%;  /* wide, heavy editorial display */
+  --display-weight: 800;
+
+  /* Layout */
+  --gutter: clamp(16px, 3.2vw, 48px);
+  --max: 1680px;
+  --header-h: 64px;
+  --announce-h: 34px;
+  --radius: 0px;            /* keep square; raise for a softer brand */
+
+  /* Motion */
+  --ease: cubic-bezier(.2, .7, .1, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --t-fast: 180ms;
+  --t-med: 420ms;
+  --t-slow: 900ms;
+}
