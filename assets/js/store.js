@@ -69,9 +69,12 @@
     clear() { state.cart = []; write(KEY.cart, state.cart); emit({ type: "cart:clear" }); },
 
     shippingFor(methodId, subtotal = this.subtotal) {
-      const m = window.BRAND.shippingRates.find((r) => r.id === methodId) || window.BRAND.shippingRates[0];
-      if (m.id === "standard" && subtotal >= window.BRAND.freeShippingThreshold) return 0;
-      return m.price;
+      const rates = window.BRAND.shippingRates || [];
+      const m = rates.find((r) => r.id === methodId) || rates[0];
+      if (!m) return 0;
+      // The first shipping option is free over the threshold (mirrors api/checkout.js)
+      if (m === rates[0] && subtotal >= window.BRAND.freeShippingThreshold) return 0;
+      return Number(m.price) || 0;
     },
 
     /* ---------- Wishlist ---------- */
@@ -105,6 +108,14 @@
       this.clear();
       emit({ type: "order", id: order.id });
       return order;
+    },
+    /** Keep a copy of an order placed through the server (for the Account page). */
+    saveOrder(order) {
+      const i = state.orders.findIndex((o) => o.id === order.id);
+      if (i >= 0) state.orders[i] = { ...state.orders[i], ...order };
+      else state.orders.unshift(order);
+      write(KEY.orders, state.orders);
+      emit({ type: "order", id: order.id });
     },
     get orders() { return state.orders; },
   };

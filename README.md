@@ -32,13 +32,40 @@ Press **Save & publish** and the live site updates within about a minute. A copy
 
 Changing `ADMIN_PASSWORD` signs out every open admin session.
 
+## Orders & payments
+
+**Admin → Payments** sets how customers pay:
+
+- **No online payment:** orders come in unpaid. You arrange payment, then use **Mark as paid** on the order.
+- **Paystack:** cards, bank transfer and USSD, in NGN, GHS, ZAR, KES or USD.
+- **Stripe:** cards, Apple Pay and Google Pay, in any store currency.
+
+Paste your keys, then **Test connection**. Copy the webhook URL shown into the provider's dashboard. Keys are encrypted before they're stored and are never shown again. Start with test keys (`sk_test_…`); checkout shows a "test mode" note until you switch to live keys.
+
+**How checkout works**
+
+1. The customer submits checkout.
+2. `/api/checkout` re-prices the bag from the catalogue, checks stock, saves the order as "awaiting payment" and sends the customer to Paystack's or Stripe's payment page.
+3. After paying, the customer returns through `/api/checkout-return`, which confirms the payment with the provider (amount and currency included) before marking the order paid.
+4. The provider's webhook (`/api/webhooks/paystack` or `/api/webhooks/stripe`) confirms it again, in case the customer closed the tab. Both paths are safe to run twice.
+5. Stock is deducted once, when the order is paid (or straight away when there's no online payment).
+
+**Admin → Orders** lists every order with filters (to fulfil, awaiting payment, shipped…), search and CSV export. Open an order to see items, customer and address, then update its status, add a carrier and tracking number (the customer sees these on their order page), keep internal notes, or cancel it and put the items back in stock.
+
+**Where data is kept:** orders and payment keys are stored in Vercel Blob, encrypted with AES-256-GCM. The encryption key comes from `ENCRYPTION_KEY` if you set one, otherwise from the storage token. Changing whichever key is used makes existing orders and saved keys unreadable, so if you want to rotate the storage token later, set your own `ENCRYPTION_KEY` first. Stock is kept in its own file (`inventory.json`), so orders and admin publishing don't overwrite each other.
+
+**Optional environment variables:** `ENCRYPTION_KEY`, plus `PAYMENT_PROVIDER`, `PAYSTACK_SECRET_KEY`, `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` if you'd rather manage keys in Vercel than in the admin. Keys entered in the admin take priority.
+
+**Not included yet:** order confirmation emails to customers and admin email alerts. These need an email service such as Resend or Postmark. Refunds are issued from the Paystack or Stripe dashboard.
+
 ## Structure
 
 ```
 index.html              App shell: announcement, header, mobile menu, cart drawer, search overlay, SEO defaults
 data/content.json       Default content (used until the first publish from /admin)
 admin/                  The admin editor (index.html, admin.js, admin.css)
-api/                    Vercel functions: auth.js (sign in), content.js (load / publish / backups), upload.js (photos)
+api/                    Vercel functions: auth, content (load / publish / backups), upload (photos),
+                        checkout, checkout-return, order-status, orders, payments, webhooks/paystack, webhooks/stripe
 assets/css/theme.css    Default colours, type, spacing and motion (colours can be overridden from /admin)
 assets/css/styles.css   Components + responsive layouts
 assets/js/boot.js       Loads live content (/api/content → data/content.json fallback), applies the theme
@@ -93,4 +120,3 @@ The same boundaries work for Sanity, Contentful or Medusa: only `boot.js`, `cms.
 - Placeholder photography comes from Unsplash's CDN. Replace it with your own campaign and product shots, keeping each product's primary and secondary image consistent.
 - Hash routing means search engines see a single URL. For production SEO, render these views with Next.js, Astro or Shopify Hydrogen. The view functions already return `{ title, description, image, ld, html }`, so they port directly. Also add `sitemap.xml` and `robots.txt`.
 - Contact, newsletter and customer sign-in forms validate on the client but aren't wired to a backend. Connect them to Klaviyo, Shopify Forms or your email provider.
-- Stock edited in the admin controls what shoppers can add to their bag, but orders don't reduce stock yet. That needs a real checkout (Shopify / Stripe) to report sales back.

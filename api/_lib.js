@@ -1,12 +1,14 @@
-// Shared helpers for the STRATA admin API (files starting with "_" are not
+// Shared helpers for the STRATA API (files starting with "_" are not
 // deployed as endpoints).
 import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { head } from "@vercel/blob";
+import { head, put, list } from "@vercel/blob";
 
 export const COOKIE = "strata_admin";
 export const SESSION_HOURS = 12;
 export const CONTENT_PATH = "content.json";
+const INVENTORY_PATH = "inventory.json";
+const PAYMENTS_PATH = "secure/payments.enc";
 
 export const hasStorage = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 export const hasPassword = () => Boolean(process.env.ADMIN_PASSWORD);
@@ -38,9 +40,12 @@ export function isAuthed(request) {
   if (!raw) return false;
   const [exp, sig] = raw.slice(COOKIE.length + 1).split(".");
   if (!exp || !sig || Number(exp) < Date.now()) return false;
-  const expected = Buffer.from(hmac(exp));
-  const given = Buffer.from(sig);
-  return expected.length === given.length && crypto.timingSafeEqual(expected, given);
+  return safeEqual(hmac(exp), sig);
+}
+
+export function safeEqual(a, b) {
+  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
 export function passwordMatches(input) {
@@ -49,25 +54,194 @@ export function passwordMatches(input) {
   return hasPassword() && crypto.timingSafeEqual(a, b);
 }
 
+/* ---------- Encryption for orders and payment keys ----------
+   Blob files are publicly addressable, so anything private is sealed with
+   AES-256-GCM. The key comes from ENCRYPTION_KEY if set, otherwise from the
+   storage token (server-only). Changing whichever one is used makes
+   existing orders and saved payment keys unreadable. */
+function encKey() {
+  const base = process.env.ENCRYPTION_KEY || process.env.BLOB_READ_WRITE_TOKEN || "";
+  return crypto.createHash("sha256").update("strata-data:" + base).digest();
+}
+export function seal(obj) {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv("aes-256-gcm", encKey(), iv);
+  const data = Buffer.concat([c.update(JSON.stringify(obj), "utf8"), c.final()]);
+  return ["v1", iv.toString("base64"), c.getAuthTag().toString("base64"), data.toString("base64")].join(":");
+}
+export function unseal(text) {
+  const [v, iv, tag, data] = String(text).split(":");
+  if (v !== "v1") throw new Error("Unknown sealed format");
+  const d = crypto.createDecipheriv("aes-256-gcm", encKey(), Buffer.from(iv, "base64"));
+  d.setAuthTag(Buffer.from(tag, "base64"));
+  return JSON.parse(Buffer.concat([d.update(Buffer.from(data, "base64")), d.final()]).toString("utf8"));
+}
+
+/* ---------- Blob helpers ---------- */
+const isNotFound = (err) => /not.?found|does not exist/i.test(String(err && (err.name + " " + err.message)));
+
+async function readBlobText(pathname) {
+  try {
+    const meta = await head(pathname);
+    const r = await fetch(`${meta.url}?v=${new Date(meta.uploadedAt).getTime()}`, { cache: "no-store" });
+    return r.ok ? await r.text() : null;
+  } catch (err) {
+    if (!isNotFound(err)) console.error("readBlob", pathname, err);
+    return null;
+  }
+}
+async function writeBlob(pathname, body, contentType = "application/json", cacheControlMaxAge = 60) {
+  return put(pathname, body, { access: "public", contentType, addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge });
+}
+
 /* ---------- Content ---------- */
 export async function readSeed() {
   return JSON.parse(await readFile(new URL("../data/content.json", import.meta.url), "utf8"));
 }
 
-/** The live content saved from /admin, or the bundled seed if nothing has been saved yet. */
-export async function readContent() {
+async function readRawContent() {
   if (hasStorage()) {
-    try {
-      const meta = await head(CONTENT_PATH);
-      const r = await fetch(`${meta.url}?v=${new Date(meta.uploadedAt).getTime()}`, { cache: "no-store" });
-      if (r.ok) return { content: await r.json(), source: "storage" };
-    } catch (err) {
-      if (!/not.?found/i.test(String(err && (err.name + err.message)))) console.error("readContent", err);
-    }
+    const text = await readBlobText(CONTENT_PATH);
+    if (text) return { content: JSON.parse(text), source: "storage" };
   }
   return { content: await readSeed(), source: "seed" };
 }
 
+/** Live content, with current stock levels applied to each product. */
+export async function readContent() {
+  const res = await readRawContent();
+  const inv = await readInventory(res.content);
+  for (const p of res.content.products || []) if (inv[p.slug]) p.stock = { ...(p.stock || {}), ...inv[p.slug] };
+  return res;
+}
+
+export async function writeContent(content) {
+  const body = JSON.stringify(content);
+  await writeBlob(CONTENT_PATH, body);
+  await put(`backups/content-${Date.now()}.json`, body, { access: "public", contentType: "application/json", addRandomSuffix: false });
+}
+
+/* ---------- Inventory ----------
+   Stock lives in its own file so orders (which reduce stock) and the admin
+   (which edits content) never overwrite each other's changes. */
+export async function readInventory(content) {
+  if (hasStorage()) {
+    const text = await readBlobText(INVENTORY_PATH);
+    if (text) return JSON.parse(text);
+  }
+  const c = content || (await readRawContent()).content;
+  return Object.fromEntries((c.products || []).map((p) => [p.slug, { ...(p.stock || {}) }]));
+}
+async function writeInventory(inv) {
+  await writeBlob(INVENTORY_PATH, JSON.stringify(inv));
+}
+
+/** After an admin publish: add new products/variants, drop deleted ones, apply edited cells. */
+export async function syncInventory(content, changes = []) {
+  const inv = await readInventory(content);
+  const next = {};
+  for (const p of content.products || []) {
+    const cur = inv[p.slug] || {};
+    const row = {};
+    for (const c of p.colors || []) for (const s of p.sizes || []) {
+      const k = `${c.name}|${s}`;
+      row[k] = k in cur ? cur[k] : Math.max(0, parseInt((p.stock || {})[k], 10) || 0);
+    }
+    next[p.slug] = row;
+  }
+  for (const ch of changes) {
+    if (next[ch.slug] && ch.key in next[ch.slug]) next[ch.slug][ch.key] = Math.max(0, parseInt(ch.qty, 10) || 0);
+  }
+  await writeInventory(next);
+  return next;
+}
+
+/** sign = -1 to take stock for an order, +1 to put it back. */
+export async function adjustInventory(lines, sign) {
+  const inv = await readInventory();
+  for (const l of lines) {
+    const k = `${l.color}|${l.size}`;
+    if (!inv[l.slug]) inv[l.slug] = {};
+    inv[l.slug][k] = Math.max(0, (parseInt(inv[l.slug][k], 10) || 0) + sign * l.qty);
+  }
+  await writeInventory(inv);
+}
+
+/* ---------- Payment settings ---------- */
+export async function readPayments() {
+  let saved = {};
+  if (hasStorage()) {
+    const text = await readBlobText(PAYMENTS_PATH);
+    if (text) { try { saved = unseal(text); } catch (e) { console.error("payments unseal", e.message); saved = { unreadable: true }; } }
+  }
+  const env = process.env;
+  return {
+    provider: saved.provider || env.PAYMENT_PROVIDER || "none",
+    unreadable: !!saved.unreadable,
+    paystack: { secretKey: saved.paystack?.secretKey || env.PAYSTACK_SECRET_KEY || "", publicKey: saved.paystack?.publicKey || env.PAYSTACK_PUBLIC_KEY || "" },
+    stripe: { secretKey: saved.stripe?.secretKey || env.STRIPE_SECRET_KEY || "", webhookSecret: saved.stripe?.webhookSecret || env.STRIPE_WEBHOOK_SECRET || "" },
+  };
+}
+export async function writePayments(settings) {
+  await writeBlob(PAYMENTS_PATH, seal(settings), "text/plain", 60);
+}
+export const keyMode = (k) => (!k ? null : /_test_/.test(k) ? "test" : "live");
+export const mask = (k) => (k ? `${k.slice(0, 8)}…${k.slice(-4)}` : "");
+
+/* ---------- Orders ---------- */
+const orderPath = (id) => `orders/${id}.enc`;
+
+export function newOrderId() {
+  const t = Date.now().toString(36).toUpperCase().slice(-6);
+  const r = crypto.randomBytes(3).toString("hex").toUpperCase().slice(0, 4);
+  return `ST${t}${r}`;
+}
+export const newToken = () => crypto.randomBytes(18).toString("base64url");
+
+export async function saveOrder(order) {
+  order.updatedAt = new Date().toISOString();
+  await writeBlob(orderPath(order.id), seal(order), "text/plain", 60);
+  return order;
+}
+export async function readOrder(id) {
+  if (!/^ST[A-Z0-9]{6,14}$/.test(id || "")) return null;
+  const text = await readBlobText(orderPath(id));
+  if (!text) return null;
+  try { return unseal(text); } catch { return null; }
+}
+export async function listOrders(limit = 300) {
+  const { blobs } = await list({ prefix: "orders/", limit: 1000 });
+  const recent = blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, limit);
+  const out = await Promise.all(recent.map(async (b) => {
+    try {
+      const r = await fetch(`${b.url}?v=${new Date(b.uploadedAt).getTime()}`, { cache: "no-store" });
+      return unseal(await r.text());
+    } catch { return null; }
+  }));
+  return out.filter(Boolean).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function addHistory(order, status, note, by = "system") {
+  order.history = order.history || [];
+  order.history.push({ at: new Date().toISOString(), status, note: note || "", by });
+}
+
+/** Idempotent: safe to call from both the return page and the webhook. */
+export async function markPaid(id, payment) {
+  const order = await readOrder(id);
+  if (!order) return null;
+  if (order.payment?.status === "paid") return order;
+  order.payment = { ...order.payment, ...payment, status: "paid", paidAt: new Date().toISOString() };
+  if (order.status === "awaiting_payment") order.status = "paid";
+  addHistory(order, "paid", `Payment confirmed by ${payment.provider}`);
+  if (!order.stockDeducted) { await adjustInventory(order.lines, -1); order.stockDeducted = true; }
+  return saveOrder(order);
+}
+
+/** Smallest currency unit (kobo, cents…). All supported currencies use 2 decimals. */
+export const toMinor = (amount) => Math.round(Number(amount) * 100);
+
+/* ---------- Content validation ---------- */
 const REQUIRED_ARRAYS = ["products", "collections", "categories", "testimonials", "faq", "social"];
 
 /** Light structural validation so a bad save can't take the storefront down. */

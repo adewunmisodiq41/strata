@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/content.js": { "includeFiles": "data/content.json" }
+    "api/**/*.js": { "includeFiles": "data/content.json" }
   },
   "images": {
     "sizes": [256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],

@@ -15,7 +15,17 @@
     content: null, savedJSON: "", mode: "live", auth: {},
     section: localStorage.getItem("strata.admin.section") || "products",
     edit: null, search: "", open: new Set(), autoSlug: false, saving: false,
+    origStock: {}, orders: null, orderFilter: "todo", orderSearch: "", order: null, payments: null,
   };
+  const snapshotStock = () => { state.origStock = Object.fromEntries(state.content.products.map((p) => [p.slug, { ...(p.stock || {}) }])); };
+  function stockChanges() {
+    const out = [];
+    for (const p of state.content.products) {
+      const before = state.origStock[p.slug] || {};
+      for (const [key, qty] of Object.entries(p.stock || {})) if (before[key] !== qty) out.push({ slug: p.slug, key, qty });
+    }
+    return out;
+  }
 
   /* ---------------------------------------------------------------- API */
   async function api(url, opts = {}) {
@@ -183,10 +193,11 @@
 
   /* ---------------------------------------------------------- sections */
   const SECTIONS = [
+    ["Sales", [["orders", "Orders"]]],
     ["Catalogue", [["products", "Products"], ["collections", "Collections"], ["categories", "Categories"]]],
     ["Pages", [["home", "Homepage"], ["about", "About page"], ["info", "Help & legal pages"], ["faq", "FAQ"]]],
     ["Social", [["testimonials", "Customer stories"], ["social", "Social gallery"]]],
-    ["Settings", [["settings", "Brand & store"], ["theme", "Colours"], ["backups", "Backups"]]],
+    ["Settings", [["settings", "Brand & store"], ["payments", "Payments"], ["theme", "Colours"], ["backups", "Backups"]]],
   ];
   const sectionLabel = (id) => SECTIONS.flatMap((g) => g[1]).find(([k]) => k === id)?.[1] || "";
 
@@ -393,10 +404,218 @@
     } catch (e) { box.innerHTML = `<p class="accent">${esc(e.message)}</p>`; }
   }
 
+  /* ------------------------------------------------------------- orders */
+  const STATUS = {
+    awaiting_payment: ["Awaiting payment", "st--wait"], new: ["New — unpaid", "st--new"], paid: ["Paid — to pack", "st--todo"],
+    processing: ["Processing", "st--todo"], shipped: ["Shipped", "st--ship"], delivered: ["Delivered", "st--done"], cancelled: ["Cancelled", "st--off"],
+  };
+  const FILTERS = [
+    ["todo", "To fulfil", (o) => ["new", "paid", "processing"].includes(o.status)],
+    ["awaiting_payment", "Awaiting payment", (o) => o.status === "awaiting_payment"],
+    ["shipped", "Shipped", (o) => o.status === "shipped"],
+    ["delivered", "Delivered", (o) => o.status === "delivered"],
+    ["cancelled", "Cancelled", (o) => o.status === "cancelled"],
+    ["all", "All", () => true],
+  ];
+  const oMoney = (n, cur) => { try { return new Intl.NumberFormat(state.content.settings.locale || "en-US", { style: "currency", currency: cur || state.content.settings.currency || "USD" }).format(n || 0); } catch { return `${cur} ${n}`; } };
+  const when = (iso) => new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const badge = (st) => { const [l, c] = STATUS[st] || [st, ""]; return `<em class="st ${c}">${esc(l)}</em>`; };
+
+  async function loadOrders() {
+    try { state.orders = (await api("/api/orders")).orders; }
+    catch (e) { state.orders = []; toast(e.message); if (e.status === 401) return showLogin(); }
+    if (state.section === "orders") render();
+  }
+
+  function ordersView() {
+    if (state.mode === "local") return `<p class="empty">Orders appear here once the site runs on Vercel with storage connected.</p>`;
+    if (!state.orders) return `<p class="empty">Loading orders…</p>`;
+    const all = state.orders;
+    const since = Date.now() - 30 * 864e5;
+    const paid30 = all.filter((o) => o.payment?.status === "paid" && new Date(o.createdAt) > since && o.status !== "cancelled");
+    const cur = all[0]?.currency;
+    const f = FILTERS.find(([k]) => k === state.orderFilter) || FILTERS[0];
+    const q = state.orderSearch.toLowerCase();
+    const rows = all.filter(f[2]).filter((o) => !q || [o.id, o.customer.email, o.customer.first, o.customer.last].join(" ").toLowerCase().includes(q));
+    return `
+      <div class="cards">
+        <div class="card"><span class="lbl">To fulfil</span><b>${all.filter(FILTERS[0][2]).length}</b></div>
+        <div class="card"><span class="lbl">Awaiting payment</span><b>${all.filter(FILTERS[1][2]).length}</b></div>
+        <div class="card"><span class="lbl">Paid, last 30 days</span><b>${oMoney(paid30.reduce((a, o) => a + o.total, 0), cur)}</b></div>
+        <div class="card"><span class="lbl">Orders, last 30 days</span><b>${paid30.length}</b></div>
+      </div>
+      <div class="toolbar">
+        <div class="seg">${FILTERS.map(([k, l, fn]) => `<button class="${k === f[0] ? "is-on" : ""}" data-ofilter="${k}">${l} <small>${all.filter(fn).length}</small></button>`).join("")}</div>
+        <input type="search" class="search" placeholder="Search order #, name or email" value="${esc(state.orderSearch)}" data-osearch />
+        <button class="btn btn--ghost btn--sm" data-act="orders-refresh">Refresh</button>
+        <button class="btn btn--ghost btn--sm" data-act="orders-csv">Export CSV</button>
+      </div>
+      <div class="table otable">
+        <div class="tr th"><span>Order</span><span>Date</span><span>Customer</span><span>Items</span><span>Total</span><span>Status</span></div>
+        ${rows.map((o) => `
+          <button class="tr" data-act="open-order" data-id="${esc(o.id)}">
+            <span><b>#${esc(o.id)}</b></span>
+            <span class="muted">${when(o.createdAt)}</span>
+            <span>${esc(o.customer.first)} ${esc(o.customer.last)}<small class="muted">${esc(o.customer.email)}</small></span>
+            <span>${o.lines.reduce((a, l) => a + l.qty, 0)}</span>
+            <span>${oMoney(o.total, o.currency)}${o.payment?.status === "paid" ? "" : `<small class="muted">unpaid</small>`}</span>
+            <span>${badge(o.status)}</span>
+          </button>`).join("") || `<p class="empty">${all.length ? "No orders here." : "No orders yet. They'll appear here as soon as customers check out."}</p>`}
+      </div>`;
+  }
+
+  function orderDetail(o) {
+    const can = { restock: o.stockDeducted };
+    return `
+      <div class="toolbar">
+        <button class="btn btn--ghost btn--sm" data-act="orders-back">← All orders</button>
+        ${badge(o.status)}
+        <span class="muted">Placed ${when(o.createdAt)}</span>
+      </div>
+      <div class="odetail">
+        <div>
+          <fieldset class="grp"><legend>Items</legend>
+            <ul class="olines">${o.lines.map((l) => `
+              <li><span class="thumb">${l.image ? `<img src="${esc(thumbURL(l.image, 80, 106))}" alt="" />` : ""}</span>
+                <span><b>${esc(l.name)}</b><small class="muted">${esc(l.color)} / ${esc(l.size)} · ${oMoney(l.price, o.currency)} × ${l.qty}</small></span>
+                <span>${oMoney(l.price * l.qty, o.currency)}</span></li>`).join("")}</ul>
+            <dl class="otot">
+              <div><dt>Subtotal</dt><dd>${oMoney(o.subtotal, o.currency)}</dd></div>
+              <div><dt>Shipping — ${esc(o.shipping.label)}</dt><dd>${o.shipping.price ? oMoney(o.shipping.price, o.currency) : "Free"}</dd></div>
+              <div class="otot__g"><dt>Total</dt><dd>${oMoney(o.total, o.currency)}</dd></div>
+            </dl>
+          </fieldset>
+          <fieldset class="grp"><legend>Payment</legend>
+            ${o.payment?.status === "paid"
+              ? `<p><b>Paid</b> via ${esc(o.payment.provider === "manual" ? "manual record" : o.payment.provider)} · ${when(o.payment.paidAt)}</p><p class="muted small">Reference: ${esc(o.payment.reference || "—")}${o.payment.channel ? ` · ${esc(o.payment.channel)}` : ""}</p>`
+              : `<p><b>Not paid.</b> ${o.payment?.provider && o.payment.provider !== "none" ? `The customer was sent to ${esc(o.payment.provider)} but hasn't completed payment.` : "This order was placed without online payment."}</p>
+                 <div class="row"><input type="text" placeholder="Payment reference (optional)" data-pay-ref /><button class="btn btn--sm" data-act="order-mark-paid">Mark as paid</button></div>
+                 <p class="help">Use this if the customer paid another way, e.g. bank transfer. Stock is taken when an order is marked paid.</p>`}
+          </fieldset>
+          <fieldset class="grp"><legend>History</legend>
+            <ul class="ohist">${(o.history || []).slice().reverse().map((h) => `<li><span>${badge(h.status)}</span><span>${esc(h.note || "")}</span><span class="muted">${when(h.at)} · ${esc(h.by)}</span></li>`).join("")}</ul>
+          </fieldset>
+        </div>
+        <div>
+          <fieldset class="grp"><legend>Customer</legend>
+            <p><b>${esc(o.customer.first)} ${esc(o.customer.last)}</b></p>
+            <p><a href="mailto:${esc(o.customer.email)}?subject=${encodeURIComponent(`Your order #${o.id}`)}">${esc(o.customer.email)}</a></p>
+            ${o.customer.phone ? `<p><a href="tel:${esc(o.customer.phone)}">${esc(o.customer.phone)}</a></p>` : ""}
+            ${o.customer.marketing ? `<p class="muted small">Opted in to marketing emails</p>` : ""}
+            <p class="lbl" style="margin-top:14px">Ship to</p>
+            <p>${esc(o.shippingAddress.line1)}<br/>${esc(o.shippingAddress.city)} ${esc(o.shippingAddress.zip)}<br/>${esc(o.shippingAddress.country)}</p>
+            <p class="muted small">${esc(o.shipping.label)}${o.shipping.eta ? ` — ${esc(o.shipping.eta)}` : ""}</p>
+          </fieldset>
+          <fieldset class="grp" data-ofrm><legend>Update order</legend>
+            <div class="grid">
+              <div class="fld fld--full"><label class="lbl">Status</label>
+                <select data-o="status">${Object.entries(STATUS).map(([k, [l]]) => `<option value="${k}" ${k === o.status ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+              ${can.restock ? `<div class="fld fld--full fld--check"><label class="check"><input type="checkbox" data-o="restock" checked /><span>If cancelling, put items back in stock</span></label></div>` : ""}
+              <div class="fld fld--half"><label class="lbl">Carrier</label><input type="text" data-o="carrier" value="${esc(o.tracking?.carrier)}" placeholder="DHL, GIG, UPS…" /></div>
+              <div class="fld fld--half"><label class="lbl">Tracking number</label><input type="text" data-o="number" value="${esc(o.tracking?.number)}" /></div>
+              <div class="fld fld--full"><label class="lbl">Tracking link</label><input type="text" data-o="url" value="${esc(o.tracking?.url)}" placeholder="https://…" /></div>
+              <div class="fld fld--full"><label class="lbl">Internal notes</label><textarea rows="3" data-o="notes">${esc(o.notes)}</textarea></div>
+            </div>
+            <button class="btn btn--full" data-act="order-save" style="margin-top:16px">Update order</button>
+            <p class="help">The customer sees the status and tracking on their order page.</p>
+          </fieldset>
+        </div>
+      </div>`;
+  }
+
+  async function patchOrder(body) {
+    try {
+      const { order } = await api("/api/orders", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: state.order.id, ...body }) });
+      state.order = order;
+      const i = state.orders?.findIndex((x) => x.id === order.id);
+      if (i >= 0) state.orders[i] = order;
+      toast("Order updated"); render();
+    } catch (e) { if (e.status === 401) return showLogin(); alert(e.message); }
+  }
+
+  function ordersCSV() {
+    const rows = [["Order", "Date", "Status", "Paid", "Name", "Email", "Phone", "Address", "City", "Postcode", "Country", "Items", "Subtotal", "Shipping", "Total", "Currency", "Carrier", "Tracking"]];
+    for (const o of state.orders || []) rows.push([o.id, o.createdAt, o.status, o.payment?.status === "paid" ? "yes" : "no", `${o.customer.first} ${o.customer.last}`, o.customer.email, o.customer.phone, o.shippingAddress.line1, o.shippingAddress.city, o.shippingAddress.zip, o.shippingAddress.country, o.lines.map((l) => `${l.qty}x ${l.name} (${l.color}/${l.size})`).join("; "), o.subtotal, o.shipping.price, o.total, o.currency, o.tracking?.carrier, o.tracking?.number]);
+    const csv = rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  }
+
+  /* ----------------------------------------------------------- payments */
+  async function loadPayments() {
+    try { state.payments = await api("/api/payments"); }
+    catch (e) { state.payments = { error: e.message }; if (e.status === 401) return showLogin(); }
+    if (state.section === "payments") render();
+  }
+
+  function paymentsView() {
+    if (state.mode === "local") return `<p class="empty">Payment setup is available once the site runs on Vercel.</p>`;
+    const P = state.payments;
+    if (!P) return `<p class="empty">Loading…</p>`;
+    if (P.error) return `<p class="empty accent">${esc(P.error)}</p>`;
+    const cur = (state.content.settings.currency || "USD").toUpperCase();
+    const modeTag = (m) => (m ? `<em class="st ${m === "live" ? "st--done" : "st--wait"}">${m === "live" ? "Live keys" : "Test keys"}</em>` : "");
+    const copy = (url) => `<div class="copy"><input type="text" readonly value="${esc(url)}" /><button type="button" class="btn btn--sm btn--ghost" data-act="copy" data-v="${esc(url)}">Copy</button></div>`;
+    const choice = (k, title, text) => `<label class="choice ${P.provider === k ? "is-on" : ""}"><input type="radio" name="provider" value="${k}" ${P.provider === k ? "checked" : ""} data-pprov /><span><b>${title}</b><small>${text}</small></span></label>`;
+    return `
+      ${P.unreadable ? `<div class="notice">Saved payment keys couldn't be read (the storage token or ENCRYPTION_KEY changed). Please enter your keys again.</div>` : ""}
+      <fieldset class="grp"><legend>How customers pay</legend>
+        <div class="choices">
+          ${choice("none", "No online payment", "Orders come in unpaid. You arrange payment with the customer, then mark the order as paid.")}
+          ${choice("paystack", "Paystack", "Cards, bank transfer and USSD. Best for Nigeria, Ghana, South Africa and Kenya.")}
+          ${choice("stripe", "Stripe", "Cards, Apple Pay and Google Pay. Best for the US, UK, Europe and most other countries.")}
+        </div>
+      </fieldset>
+
+      <fieldset class="grp"><legend>Paystack ${modeTag(P.paystack.mode)}</legend>
+        ${!P.currencies.paystack.includes(cur) ? `<p class="notice notice--in">Your store currency is ${esc(cur)}. Paystack only takes ${P.currencies.paystack.join(", ")} — change the currency under Brand & store to use Paystack.</p>` : ""}
+        <ol class="steps">
+          <li>In your <a href="https://dashboard.paystack.com/#/settings/developers" target="_blank" rel="noopener">Paystack dashboard</a>, open <b>Settings → API Keys & Webhooks</b>.</li>
+          <li>Copy your <b>Secret key</b> into the box below. Start with the <b>test</b> key (sk_test_…) and switch to the live key when you're ready.</li>
+          <li>Paste this address into <b>Webhook URL</b> on the same page and save:</li>
+        </ol>
+        ${copy(P.webhooks.paystack)}
+        <div class="grid" style="margin-top:16px">
+          <div class="fld fld--full"><label class="lbl">Secret key</label><input type="password" autocomplete="off" data-pkey="paystack.secretKey" placeholder="${P.paystack.configured ? `Saved: ${esc(P.paystack.secretKey)} — paste a new key to replace it` : "sk_test_… or sk_live_…"}" /></div>
+          <div class="fld fld--full"><label class="lbl">Public key (optional)</label><input type="text" autocomplete="off" data-pkey="paystack.publicKey" placeholder="${esc(P.paystack.publicKey || "pk_test_… or pk_live_…")}" /></div>
+        </div>
+        ${P.paystack.configured ? `<div class="row"><button class="btn btn--sm btn--ghost" data-act="pay-test" data-p="paystack">Test connection</button><button class="btn btn--sm btn--ghost btn--danger" data-act="pay-clear" data-p="paystack">Remove Paystack keys</button></div>` : ""}
+      </fieldset>
+
+      <fieldset class="grp"><legend>Stripe ${modeTag(P.stripe.mode)}</legend>
+        <ol class="steps">
+          <li>In your <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">Stripe dashboard</a>, open <b>Developers → API keys</b> and copy the <b>Secret key</b> into the box below. Start in test mode (sk_test_…).</li>
+          <li>Open <b>Developers → Webhooks → Add endpoint</b> and paste this address:</li>
+        </ol>
+        ${copy(P.webhooks.stripe)}
+        <ol class="steps" start="3">
+          <li>Choose the events <code>checkout.session.completed</code> and <code>checkout.session.async_payment_succeeded</code>, save, then copy the <b>Signing secret</b> (whsec_…) into the box below.</li>
+        </ol>
+        <div class="grid" style="margin-top:16px">
+          <div class="fld fld--full"><label class="lbl">Secret key</label><input type="password" autocomplete="off" data-pkey="stripe.secretKey" placeholder="${P.stripe.configured ? `Saved: ${esc(P.stripe.secretKey)} — paste a new key to replace it` : "sk_test_… or sk_live_…"}" /></div>
+          <div class="fld fld--full"><label class="lbl">Webhook signing secret</label><input type="password" autocomplete="off" data-pkey="stripe.webhookSecret" placeholder="${P.stripe.webhookConfigured ? "Saved — paste a new secret to replace it" : "whsec_…"}" /></div>
+        </div>
+        ${P.stripe.configured ? `<div class="row"><button class="btn btn--sm btn--ghost" data-act="pay-test" data-p="stripe">Test connection</button><button class="btn btn--sm btn--ghost btn--danger" data-act="pay-clear" data-p="stripe">Remove Stripe keys</button></div>` : ""}
+      </fieldset>
+
+      <div class="savebar"><button class="btn" data-act="pay-save">Save payment settings</button><span class="muted">Keys are encrypted and never shown again after saving.</span></div>`;
+  }
+
+  async function savePayments(extra = {}) {
+    const body = { provider: $("[data-pprov]:checked")?.value, paystack: {}, stripe: {}, ...extra };
+    $$("[data-pkey]").forEach((el) => { const [p, k] = el.dataset.pkey.split("."); if (el.value.trim()) body[p][k] = el.value.trim(); });
+    try {
+      state.payments = await api("/api/payments", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      toast("Payment settings saved"); render();
+    } catch (e) { if (e.status === 401) return showLogin(); alert(e.message); }
+  }
+
   /* ------------------------------------------------------------- render */
   function shell(inner) {
     const sec = state.section;
-    const title = state.edit ? (state.content.products[state.edit.i]?.name || "New product") : sectionLabel(sec);
+    const title = state.edit ? (state.content.products[state.edit.i]?.name || "New product") : state.order ? `Order #${state.order.id}` : sectionLabel(sec);
+    const noPublish = (sec === "orders" || sec === "payments") && !isDirty();
     return `
       <div class="layout">
         <aside class="side">
@@ -415,7 +634,7 @@
             <div class="top__acts">
               ${state.mode === "local"
                 ? `<span class="pill pill--warn" title="The admin API isn't available here">Local preview</span><button class="btn" data-act="export">Download content.json</button>`
-                : `<button class="btn" data-act="save">${state.saving ? "Publishing…" : "Save & publish"}</button>`}
+                : noPublish ? "" : `<button class="btn" data-act="save">${state.saving ? "Publishing…" : "Save & publish"}</button>`}
             </div>
           </header>
           ${state.mode === "live" && state.auth.storage === false ? `<div class="notice">Storage isn't connected yet, so changes can't be published. In Vercel open <b>Storage → Create → Blob</b>, connect it to this project, then redeploy.</div>` : ""}
@@ -432,6 +651,8 @@
     let inner = "";
     const s = state.section;
     if (s === "products") inner = state.edit ? productEditor(state.edit.i) : productsList();
+    else if (s === "orders") inner = state.order ? orderDetail(state.order) : ordersView();
+    else if (s === "payments") inner = paymentsView();
     else if (s === "info") inner = infoEditor();
     else if (s === "backups") inner = backupsView();
     else inner = `<form class="form" onsubmit="return false">${DEFS[s].map((d) => field(d, BASE[s] || "")).join("")}</form>`;
@@ -442,6 +663,8 @@
     scrollTo(0, winScroll);
     updateDirty();
     if (s === "backups") loadBackups();
+    if (s === "orders" && !state.orders && state.mode === "live") loadOrders();
+    if (s === "payments" && !state.payments && state.mode === "live") loadPayments();
   }
 
   function themePreview() {
@@ -473,6 +696,13 @@
       const pos = el.selectionStart;
       render();
       const s = $("[data-search]"); s.focus(); s.setSelectionRange(pos, pos);
+      return;
+    }
+    if (el.matches("[data-osearch]")) {
+      state.orderSearch = el.value;
+      const pos = el.selectionStart;
+      render();
+      const s = $("[data-osearch]"); s.focus(); s.setSelectionRange(pos, pos);
       return;
     }
     if (el.matches("[data-stock]")) {
@@ -521,7 +751,7 @@
   app.addEventListener("click", async (e) => {
     const nav = e.target.closest("[data-nav]");
     if (nav) {
-      state.section = nav.dataset.nav; state.edit = null; state.search = "";
+      state.section = nav.dataset.nav; state.edit = null; state.search = ""; state.order = null;
       localStorage.setItem("strata.admin.section", state.section);
       document.body.classList.remove("nav-open");
       render(); scrollTo(0, 0); return;
@@ -540,12 +770,32 @@
       render(); return;
     }
 
+    const of = e.target.closest("[data-ofilter]");
+    if (of) { state.orderFilter = of.dataset.ofilter; render(); return; }
+    if (e.target.closest("[data-pprov]")) { $$(".choice").forEach((c) => c.classList.toggle("is-on", !!$("input:checked", c))); return; }
+
     const a = e.target.closest("[data-act]");
     if (!a) return;
     const act = a.dataset.act, i = +a.dataset.i;
     const P = state.content.products;
     switch (act) {
       case "menu": document.body.classList.toggle("nav-open"); break;
+      case "open-order": state.order = state.orders.find((o) => o.id === a.dataset.id); render(); scrollTo(0, 0); break;
+      case "orders-back": state.order = null; render(); break;
+      case "orders-refresh": state.orders = null; render(); break;
+      case "orders-csv": ordersCSV(); break;
+      case "order-mark-paid": if (confirm("Record this order as paid?")) await patchOrder({ markPaid: true, reference: $("[data-pay-ref]")?.value }); break;
+      case "order-save": {
+        const v = (k) => $(`[data-o="${k}"]`);
+        const status = v("status").value;
+        if (status === "cancelled" && state.order.status !== "cancelled" && !confirm("Cancel this order?")) return;
+        await patchOrder({ status, restock: !!v("restock")?.checked, notes: v("notes").value, tracking: { carrier: v("carrier").value, number: v("number").value, url: v("url").value } });
+        break;
+      }
+      case "copy": navigator.clipboard?.writeText(a.dataset.v); toast("Copied"); break;
+      case "pay-save": return savePayments();
+      case "pay-clear": if (confirm("Remove these keys?")) { const pr = a.dataset.p; await savePayments(pr === "paystack" ? { paystack: { secretKey: null, publicKey: null }, provider: state.payments.provider === "paystack" ? "none" : undefined } : { stripe: { secretKey: null, webhookSecret: null }, provider: state.payments.provider === "stripe" ? "none" : undefined }); } break;
+      case "pay-test": try { const r = await api(`/api/payments?provider=${a.dataset.p}`, { method: "POST" }); toast(r.message); } catch (err) { alert(err.message); } break;
       case "save": return save();
       case "export": return exportJSON();
       case "logout": await api("/api/auth", { method: "DELETE" }).catch(() => {}); location.reload(); break;
@@ -598,8 +848,10 @@
     if (errs.length) return alert("Please fix these before publishing:\n\n• " + errs.join("\n• "));
     state.saving = true; render();
     try {
-      const r = await api("/api/content", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(state.content) });
+      const r = await api("/api/content", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: state.content, stockChanges: stockChanges() }) });
       state.content.updatedAt = r.updatedAt;
+      for (const p of state.content.products) if (r.inventory?.[p.slug]) p.stock = r.inventory[p.slug];
+      snapshotStock();
       state.savedJSON = JSON.stringify(state.content);
       toast("Published. Changes appear on the site within a minute.");
     } catch (e) {
@@ -739,7 +991,8 @@
     state.content = content;
     state.content.pages = state.content.pages || {};
     state.savedJSON = JSON.stringify(content);
-    if (state.section === "products" || !sectionLabel(state.section)) state.section = "products";
+    snapshotStock();
+    if (!sectionLabel(state.section)) state.section = "orders";
     render();
   }
 

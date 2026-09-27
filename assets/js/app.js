@@ -978,6 +978,7 @@
               <div class="field"><label for="k-ln">Last name</label><input id="k-ln" name="last" autocomplete="family-name" required /><span class="field__err"></span></div>
             </div>
             <div class="field"><label for="k-a1">Address</label><input id="k-a1" name="address" autocomplete="address-line1" required /><span class="field__err"></span></div>
+            <div class="field"><label for="k-phone">Phone (for delivery updates)</label><input id="k-phone" name="phone" type="tel" autocomplete="tel" /><span class="field__err"></span></div>
             <div class="form__3">
               <div class="field"><label for="k-city">City</label><input id="k-city" name="city" autocomplete="address-level2" required /><span class="field__err"></span></div>
               <div class="field"><label for="k-zip">Postcode</label><input id="k-zip" name="zip" autocomplete="postal-code" required /><span class="field__err"></span></div>
@@ -993,11 +994,9 @@
             </div>
           </fieldset>
           <fieldset><legend class="label">04 — Payment</legend>
-            <div class="pay-note">
-              <p>Payment is completed on the secure hosted checkout of your commerce provider (Shopify Checkout, Stripe, Adyen). Card details are never handled by this storefront.</p>
-              <div class="pay-marks label muted"><span>Visa</span><span>Mastercard</span><span>Amex</span><span>Apple Pay</span><span>Google Pay</span><span>Klarna</span></div>
-            </div>
+            <div class="pay-note" data-pay><p class="muted">Loading payment options…</p></div>
           </fieldset>
+          <p class="form__err" data-checkout-err role="alert" hidden></p>
           <button class="btn btn--dark btn--full" type="submit" data-place>Place order</button>
           <p class="muted small">By placing your order you agree to our <a class="u" href="#/info/terms">Terms</a> and <a class="u" href="#/info/privacy">Privacy Policy</a>.</p>
         </form>
@@ -1021,36 +1020,116 @@
             </dl>`;
         };
         form.addEventListener("change", renderSummary);
-        form.addEventListener("submit", (e) => {
+        // Which payment method the store uses (set in the admin)
+        let info = { enabled: false };
+        const payBox = $("[data-pay]", root), placeBtn = $("[data-place]", root), errBox = $("[data-checkout-err]", root);
+        fetch("/api/checkout").then((r) => (r.ok && (r.headers.get("content-type") || "").includes("json") ? r.json() : { enabled: false })).catch(() => ({ enabled: false })).then((res) => {
+          info = res;
+          const online = info.enabled && info.provider !== "none";
+          placeBtn.textContent = online ? `Continue to payment` : "Place order";
+          payBox.innerHTML = online
+            ? `<p>You'll be taken to <b>${esc(info.providerName)}</b> to pay securely. Your card details never touch this site.</p>
+               ${info.testMode ? `<p class="accent small">Test mode — no real money will be taken.</p>` : ""}
+               <div class="pay-marks label muted"><span>Visa</span><span>Mastercard</span>${info.provider === "paystack" ? "<span>Verve</span><span>Bank transfer</span><span>USSD</span>" : "<span>Amex</span><span>Apple Pay</span><span>Google Pay</span>"}</div>`
+            : info.enabled
+              ? `<p>We'll confirm your order by email with payment instructions.</p>`
+              : `<p>Demo checkout — this preview isn't connected to a payment provider, so no payment is taken.</p>`;
+        });
+
+        form.addEventListener("submit", async (e) => {
           e.preventDefault();
+          errBox.hidden = true;
           if (!validate(form)) return;
           const d = Object.fromEntries(new FormData(form));
-          const order = S.placeOrder({ email: d.email, shipping: d.shipping, address: { first: d.first, last: d.last, line1: d.address, city: d.city, zip: d.zip, country: d.country } });
-          go(`#/order/${order.id}`);
+          const address = { first: d.first, last: d.last, line1: d.address, city: d.city, zip: d.zip, country: d.country };
+
+          if (!info.enabled) { // static preview: keep the order in this browser only
+            const order = S.placeOrder({ email: d.email, shipping: d.shipping, address });
+            return go(`#/order/${order.id}`);
+          }
+
+          placeBtn.disabled = true; placeBtn.textContent = info.provider !== "none" ? "Connecting to payment…" : "Placing order…";
+          try {
+            const r = await fetch("/api/checkout", {
+              method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                customer: { email: d.email, first: d.first, last: d.last, phone: d.phone, marketing: !!d.news },
+                address: { line1: d.address, city: d.city, zip: d.zip, country: d.country },
+                shipping: d.shipping,
+                items: S.lines.map((l) => ({ slug: l.slug, color: l.color, size: l.size, qty: l.qty })),
+              }),
+            });
+            const res = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(res.error || "Something went wrong. Please try again.");
+            S.saveOrder({
+              id: res.id, token: res.token, createdAt: new Date().toISOString(), email: d.email, status: res.status,
+              shippingAddress: address, shippingMethod: d.shipping, total: res.total,
+              lines: S.lines.map((l) => ({ slug: l.slug, name: l.product.name, color: l.color, size: l.size, qty: l.qty, price: S.unitPrice(l.product) })),
+            });
+            if (res.redirect) { location.href = res.redirect; return; }
+            go(`#/order/${res.id}?t=${encodeURIComponent(res.token)}`);
+          } catch (err) {
+            errBox.textContent = err.message; errBox.hidden = false;
+            placeBtn.disabled = false; placeBtn.textContent = info.provider !== "none" ? "Continue to payment" : "Place order";
+          }
         });
         renderSummary();
       },
     };
   };
 
-  views.order = ([id]) => {
-    const o = S.orders.find((x) => x.id === id);
-    if (!o) return views.notFound();
+  const ORDER_STATUS = {
+    awaiting_payment: ["Payment not completed", "We haven't received payment for this order yet. Your bag is still saved, so you can try again."],
+    new: ["Order received", "Thank you. We'll email you shortly with the next steps."],
+    paid: ["Order confirmed", "Payment received. We're getting your order ready and will email you a tracking link when it ships."],
+    processing: ["Being prepared", "Your order is being packed in the studio."],
+    shipped: ["On its way", "Your order has left the studio."],
+    delivered: ["Delivered", "Your order has been delivered. Enjoy."],
+    cancelled: ["Order cancelled", "This order was cancelled. If you have questions, contact the studio."],
+  };
+
+  views.order = ([id], query) => {
+    const local = S.orders.find((x) => x.id === id);
+    const token = query.get("t") || local?.token;
+    if (!local && !token) return views.notFound();
+    const o = local || { id, lines: [], shippingAddress: {} };
+    const addr = o.shippingAddress || {};
+    const rate = (B.shippingRates || []).find((r) => r.id === o.shippingMethod) || {};
     return {
       title: `Order #${o.id} — ${B.name}`, description: "",
       html: `
       <section class="wrap section order">
-        <p class="label accent">Order confirmed</p>
-        <h1 class="display page-title">Thank you, ${esc(o.shippingAddress.first)}.</h1>
-        <p class="lead">Order <b>#${o.id}</b> is confirmed. A receipt is on its way to ${esc(o.email)}, and you'll get a tracking link as soon as it leaves the studio.</p>
+        <p class="label accent" data-o-kicker>${token ? "Checking your order…" : "Order confirmed"}</p>
+        <h1 class="display page-title" data-o-title>${addr.first ? `Thank you, ${esc(addr.first)}.` : `Order #${esc(o.id)}`}</h1>
+        <p class="lead" data-o-lead>${token ? "" : `Order <b>#${esc(o.id)}</b> is confirmed.`}</p>
+        <div data-o-tracking></div>
+        ${o.lines.length ? `
         <div class="order__grid">
-          <div><p class="label muted">Shipping to</p><p>${esc(o.shippingAddress.first)} ${esc(o.shippingAddress.last)}<br/>${esc(o.shippingAddress.line1)}<br/>${esc(o.shippingAddress.city)} ${esc(o.shippingAddress.zip)}<br/>${esc(o.shippingAddress.country)}</p></div>
-          <div><p class="label muted">Delivery</p><p>${esc((B.shippingRates.find((r) => r.id === o.shippingMethod) || {}).label)} — ${esc((B.shippingRates.find((r) => r.id === o.shippingMethod) || {}).eta)}</p></div>
-          <div><p class="label muted">Items</p>${o.lines.map((l) => `<p>${l.qty} × ${esc(l.name)} <span class="muted">(${esc(l.color)} / ${l.size})</span></p>`).join("")}</div>
+          <div><p class="label muted">Order</p><p>#${esc(o.id)}</p></div>
+          <div><p class="label muted">Shipping to</p><p>${esc(addr.first)} ${esc(addr.last)}<br/>${esc(addr.line1)}<br/>${esc(addr.city)} ${esc(addr.zip)}<br/>${esc(addr.country)}</p></div>
+          <div><p class="label muted">Items</p>${o.lines.map((l) => `<p>${l.qty} × ${esc(l.name)} <span class="muted">(${esc(l.color)} / ${esc(l.size)})</span></p>`).join("")}${rate.label ? `<p class="muted">${esc(rate.label)} — ${esc(rate.eta)}</p>` : ""}</div>
           <div><p class="label muted">Total</p><p class="h2">${money(o.total)}</p></div>
-        </div>
-        <a class="btn btn--dark" href="#/shop">Continue shopping</a>
+        </div>` : ""}
+        <div class="order__acts" data-o-acts><a class="btn btn--dark" href="#/shop">Continue shopping</a></div>
       </section>`,
+      mount(root) {
+        if (!token) return;
+        fetch(`/api/order-status?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`)
+          .then((r) => (r.ok ? r.json() : Promise.reject()))
+          .then((st) => {
+            const [kicker, lead] = ORDER_STATUS[st.status] || ORDER_STATUS.new;
+            $("[data-o-kicker]", root).textContent = kicker;
+            $("[data-o-lead]", root).innerHTML = `Order <b>#${esc(st.id)}</b> · ${esc(lead)}`;
+            if (st.tracking?.number) $("[data-o-tracking]", root).innerHTML = `<p class="order__track"><span class="label muted">Tracking</span> ${esc(st.tracking.carrier)} ${st.tracking.url ? `<a class="u" href="${esc(st.tracking.url)}" target="_blank" rel="noopener">${esc(st.tracking.number)}</a>` : esc(st.tracking.number)}</p>`;
+            if (st.status === "awaiting_payment") {
+              $("[data-o-acts]", root).innerHTML = `<a class="btn btn--dark" href="#/checkout">Try payment again</a><a class="btn btn--outline" href="#/shop">Continue shopping</a>`;
+            } else if (local && !local.cartCleared && st.status !== "cancelled") {
+              S.clear(); // paid or placed: empty the bag once
+              S.saveOrder({ id, status: st.status, cartCleared: true });
+            } else if (local) S.saveOrder({ id, status: st.status });
+          })
+          .catch(() => { $("[data-o-kicker]", root).textContent = "Order"; $("[data-o-lead]", root).textContent = "We couldn't load this order's status right now. Please refresh in a moment."; });
+      },
     };
   };
 
@@ -1499,7 +1578,7 @@
     [/^\/wishlist$/, views.wishlist, "wishlist"],
     [/^\/account$/, views.account, "account"],
     [/^\/checkout$/, views.checkout, "checkout"],
-    [/^\/order\/(\w+)$/, views.order, "order"],
+    [/^\/order\/([A-Za-z0-9]+)$/, views.order, "order"],
     [/^\/info\/([\w-]+)$/, views.info, "info"],
   ];
 

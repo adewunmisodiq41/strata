@@ -2,8 +2,8 @@
 // GET  /api/content?fresh=1    → uncached content, for the admin
 // GET  /api/content?backups=1  → list of previous saves (admin only)
 // PUT  /api/content            → save + publish (admin only)
-import { put, list } from "@vercel/blob";
-import { json, isAuthed, hasStorage, readContent, validateContent, CONTENT_PATH } from "./_lib.js";
+import { list } from "@vercel/blob";
+import { json, isAuthed, hasStorage, readContent, validateContent, writeContent, syncInventory } from "./_lib.js";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -36,18 +36,19 @@ export async function PUT(request) {
   const text = await request.text();
   if (text.length > MAX_BYTES) return json({ error: "Content is too large to save (over 4 MB)." }, 413);
 
-  let content;
-  try { content = JSON.parse(text); } catch { return json({ error: "Invalid JSON" }, 400); }
+  let body;
+  try { body = JSON.parse(text); } catch { return json({ error: "Invalid JSON" }, 400); }
+  // The admin sends { content, stockChanges }; a bare content document is accepted too.
+  const content = body && body.content ? body.content : body;
+  const stockChanges = Array.isArray(body?.stockChanges) ? body.stockChanges : [];
 
   const errors = validateContent(content);
   if (errors.length) return json({ error: "Please fix these before publishing:", errors }, 422);
 
   content.updatedAt = new Date().toISOString();
-  const body = JSON.stringify(content);
-  const opts = { access: "public", contentType: "application/json", addRandomSuffix: false, allowOverwrite: true };
+  const inventory = await syncInventory(content, stockChanges);
+  for (const p of content.products) p.stock = inventory[p.slug] || p.stock;
+  await writeContent(content);
 
-  await put(CONTENT_PATH, body, { ...opts, cacheControlMaxAge: 60 });
-  await put(`backups/content-${Date.now()}.json`, body, { ...opts, allowOverwrite: false });
-
-  return json({ ok: true, updatedAt: content.updatedAt });
+  return json({ ok: true, updatedAt: content.updatedAt, inventory });
 }

@@ -940,3 +940,8 @@ img { background: var(--c-bg-alt); }
   [data-reveal="img"] img { clip-path: none !important; transform: none !important; }
   .announce__track { animation: none; }
 }
+
+/* ---------- Checkout errors / order status ---------- */
+.form__err { font-size: 14px; padding: 12px 14px; border-left: 2px solid var(--c-accent); background: var(--c-bg-alt); color: var(--c-accent); }
+.order__acts { display: flex; flex-wrap: wrap; gap: 10px; }
+.order__track { font-size: 15px; display: flex; gap: 12px; align-items: baseline; }
