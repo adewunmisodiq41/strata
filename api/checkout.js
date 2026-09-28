@@ -2,7 +2,7 @@
 // POST /api/checkout → create an order (prices and stock checked here, never
 //                      trusted from the browser) and start payment
 import {
-  json, hasStorage, readContent, readInventory, readPayments, keyMode,
+  json, hasStorage, readContent, readInventory, readPayments, keyMode, readCosts,
   newOrderId, newToken, saveOrder, addHistory, adjustInventory,
 } from "./_lib.js";
 import { PROVIDERS, startPayment } from "./_payments.js";
@@ -43,6 +43,7 @@ export async function POST(request) {
   const inventory = await readInventory(content);
   const items = Array.isArray(body.items) ? body.items.slice(0, 50) : [];
   if (!items.length) return json({ error: "Your bag is empty." }, 422);
+  const costs = await readCosts();
   const lines = [];
   for (const it of items) {
     const p = (content.products || []).find((x) => x.slug === it.slug && x.published !== false);
@@ -51,7 +52,7 @@ export async function POST(request) {
     if (!(p.colors || []).some((x) => x.name === it.color) || !(p.sizes || []).includes(it.size)) return json({ error: `${p.name} isn't available in that option any more.` }, 409);
     const left = parseInt((inventory[p.slug] || {})[`${it.color}|${it.size}`], 10) || 0;
     if (left < qty) return json({ error: left ? `Only ${left} left of ${p.name} (${it.color} / ${it.size}). Please update your bag.` : `${p.name} (${it.color} / ${it.size}) just sold out.` }, 409);
-    lines.push({ slug: p.slug, name: p.name, color: it.color, size: it.size, qty, price: Number(p.salePrice || p.price), image: (p.images || [])[0] || "" });
+    lines.push({ slug: p.slug, name: p.name, color: it.color, size: it.size, qty, price: Number(p.salePrice || p.price), cost: costs[p.slug] ?? null, image: (p.images || [])[0] || "" });
   }
 
   const S = content.settings || {};
@@ -72,7 +73,7 @@ export async function POST(request) {
     customer, shippingAddress: address,
     shipping: { id: rate.id, label: rate.label, eta: rate.eta, price: shippingPrice },
     lines, subtotal, total: subtotal + shippingPrice, currency,
-    payment: { provider, status: "unpaid" },
+    payment: { provider, status: "unpaid" }, amountPaid: 0, payments: [], channel: "online",
     stockDeducted: false, tracking: {}, notes: "",
   };
   addHistory(order, order.status, provider === "none" ? "Order placed (no online payment)" : "Order created, waiting for payment");

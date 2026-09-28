@@ -13,9 +13,10 @@
 
   const state = {
     content: null, savedJSON: "", mode: "live", auth: {},
-    section: localStorage.getItem("strata.admin.section") || "products",
+    section: localStorage.getItem("strata.admin.section") || "dashboard",
     edit: null, search: "", open: new Set(), autoSlug: false, saving: false,
     origStock: {}, orders: null, orderFilter: "todo", orderSearch: "", order: null, payments: null,
+    expenses: null, expenseCats: [], period: localStorage.getItem("strata.admin.period") || "month", custom: { from: "", to: "" },
   };
   const snapshotStock = () => { state.origStock = Object.fromEntries(state.content.products.map((p) => [p.slug, { ...(p.stock || {}) }])); };
   function stockChanges() {
@@ -193,7 +194,7 @@
 
   /* ---------------------------------------------------------- sections */
   const SECTIONS = [
-    ["Sales", [["orders", "Orders"]]],
+    ["Sales", [["dashboard", "Dashboard"], ["orders", "Orders"], ["expenses", "Expenses"]]],
     ["Catalogue", [["products", "Products"], ["collections", "Collections"], ["categories", "Categories"]]],
     ["Pages", [["home", "Homepage"], ["about", "About page"], ["info", "Help & legal pages"], ["faq", "FAQ"]]],
     ["Social", [["testimonials", "Customer stories"], ["social", "Social gallery"]]],
@@ -339,6 +340,7 @@
         ${field(group("Basics", [
           half("name", "Product name"), half("slug", "URL slug", "text", { help: "Filled in from the name. Lowercase letters, numbers and dashes." }),
           half("price", "Price", "number", { min: 0 }), half("salePrice", "Sale price", "number", { min: 0, help: "Leave empty when not on sale." }),
+          half("costPrice", "Cost price (private)", "number", { min: 0, help: "What one unit costs you. Used for profit on the dashboard; never shown to customers." }),
           half("category", "Category", "select", { options: opt.categories }), half("collection", "Collection", "select", { options: opt.collections }),
           half("gender", "Department", "select", { options: opt.gender }), half("status", "Badge", "select", { options: opt.status }),
           half("sku", "SKU prefix"), half("createdAt", "Release date", "date", { help: "Used for “Newest” sorting." }),
@@ -406,7 +408,7 @@
 
   /* ------------------------------------------------------------- orders */
   const STATUS = {
-    awaiting_payment: ["Awaiting payment", "st--wait"], new: ["New — unpaid", "st--new"], paid: ["Paid — to pack", "st--todo"],
+    awaiting_payment: ["Awaiting payment", "st--wait"], new: ["New", "st--new"], paid: ["Paid — to pack", "st--todo"],
     processing: ["Processing", "st--todo"], shipped: ["Shipped", "st--ship"], delivered: ["Delivered", "st--done"], cancelled: ["Cancelled", "st--off"],
   };
   const FILTERS = [
@@ -415,6 +417,7 @@
     ["shipped", "Shipped", (o) => o.status === "shipped"],
     ["delivered", "Delivered", (o) => o.status === "delivered"],
     ["cancelled", "Cancelled", (o) => o.status === "cancelled"],
+    ["owing", "Balance due", (o) => o.status !== "cancelled" && o.status !== "awaiting_payment" && balanceOf(o) > 0],
     ["all", "All", () => true],
   ];
   const oMoney = (n, cur) => { try { return new Intl.NumberFormat(state.content.settings.locale || "en-US", { style: "currency", currency: cur || state.content.settings.currency || "USD" }).format(n || 0); } catch { return `${cur} ${n}`; } };
@@ -424,7 +427,7 @@
   async function loadOrders() {
     try { state.orders = (await api("/api/orders")).orders; }
     catch (e) { state.orders = []; toast(e.message); if (e.status === 401) return showLogin(); }
-    if (state.section === "orders") render();
+    if (state.section === "orders" || state.section === "dashboard") render();
   }
 
   function ordersView() {
@@ -458,7 +461,7 @@
             <span class="muted">${when(o.createdAt)}</span>
             <span>${esc(o.customer.first)} ${esc(o.customer.last)}<small class="muted">${esc(o.customer.email)}</small></span>
             <span>${o.lines.reduce((a, l) => a + l.qty, 0)}</span>
-            <span>${oMoney(o.total, o.currency)}${o.payment?.status === "paid" ? "" : `<small class="muted">unpaid</small>`}</span>
+            <span>${oMoney(o.total, o.currency)}${paidOf(o) >= o.total ? "" : paidOf(o) > 0 ? `<small class="warn">${oMoney(balanceOf(o), o.currency)} due</small>` : `<small class="muted">unpaid</small>`}</span>
             <span>${badge(o.status)}</span>
           </button>`).join("") || `<p class="empty">${all.length ? "No orders here." : "No orders yet. They'll appear here as soon as customers check out."}</p>`}
       </div>`;
@@ -481,16 +484,24 @@
                 <span>${oMoney(l.price * l.qty, o.currency)}</span></li>`).join("")}</ul>
             <dl class="otot">
               <div><dt>Subtotal</dt><dd>${oMoney(o.subtotal, o.currency)}</dd></div>
+              ${o.discount ? `<div><dt>Discount</dt><dd>−${oMoney(o.discount, o.currency)}</dd></div>` : ""}
               <div><dt>Shipping — ${esc(o.shipping.label)}</dt><dd>${o.shipping.price ? oMoney(o.shipping.price, o.currency) : "Free"}</dd></div>
               <div class="otot__g"><dt>Total</dt><dd>${oMoney(o.total, o.currency)}</dd></div>
             </dl>
           </fieldset>
           <fieldset class="grp"><legend>Payment</legend>
+            ${o.channel && o.channel !== "online" ? `<p class="muted small">Recorded in admin · ${esc(CHANNEL[o.channel] || o.channel)}</p>` : ""}
+            ${(o.payments || []).length ? `<ul class="opays">${o.payments.map((p) => `<li><span>${when(p.at)}</span><span>${esc(p.method)}${p.reference ? ` · ${esc(p.reference)}` : ""}</span><b>${oMoney(p.amount, o.currency)}</b></li>`).join("")}</ul>` : ""}
+            ${o.status !== "cancelled" && balanceOf(o) > 0 && paidOf(o) > 0 ? `
+              <p><b>Part paid.</b> ${oMoney(paidOf(o), o.currency)} received · <span class="accent">${oMoney(balanceOf(o), o.currency)} outstanding</span></p>` : ""}
+            ${o.status !== "cancelled" && balanceOf(o) > 0 ? `
+              <div class="recpay"><input type="number" min="0" step="0.01" placeholder="Amount received" value="${balanceOf(o).toFixed(2)}" data-rp="amount" />
+                <select data-rp="method"><option value="cash">Cash</option><option value="transfer">Bank transfer</option><option value="pos">POS / card</option><option value="other">Other</option></select>
+                <input type="text" placeholder="Reference" data-rp="reference" /><button class="btn btn--sm" data-act="record-payment">Record payment</button></div>` : ""}
             ${o.payment?.status === "paid"
               ? `<p><b>Paid</b> via ${esc(o.payment.provider === "manual" ? "manual record" : o.payment.provider)} · ${when(o.payment.paidAt)}</p><p class="muted small">Reference: ${esc(o.payment.reference || "—")}${o.payment.channel ? ` · ${esc(o.payment.channel)}` : ""}</p>`
-              : `<p><b>Not paid.</b> ${o.payment?.provider && o.payment.provider !== "none" ? `The customer was sent to ${esc(o.payment.provider)} but hasn't completed payment.` : "This order was placed without online payment."}</p>
-                 <div class="row"><input type="text" placeholder="Payment reference (optional)" data-pay-ref /><button class="btn btn--sm" data-act="order-mark-paid">Mark as paid</button></div>
-                 <p class="help">Use this if the customer paid another way, e.g. bank transfer. Stock is taken when an order is marked paid.</p>`}
+              : paidOf(o) > 0 ? "" : `<p><b>Not paid.</b> ${o.payment?.provider && !["none", "manual"].includes(o.payment.provider) ? `The customer was sent to ${esc(o.payment.provider)} but hasn't completed payment.` : "No payment has been recorded yet."}</p>
+                 <p class="help">If the customer paid another way (e.g. bank transfer), record it above. Stock is taken when an online order is paid.</p>`}
           </fieldset>
           <fieldset class="grp"><legend>History</legend>
             <ul class="ohist">${(o.history || []).slice().reverse().map((h) => `<li><span>${badge(h.status)}</span><span>${esc(h.note || "")}</span><span class="muted">${when(h.at)} · ${esc(h.by)}</span></li>`).join("")}</ul>
@@ -540,6 +551,301 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  }
+
+  /* ---------------------------------------------------------- dashboard */
+  const DAY = 864e5;
+  const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const fmtDay = (d) => d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
+  const PERIODS = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["month", "This month"], ["custom", "Custom dates"]];
+
+  function periodRange() {
+    const now = new Date(), today = startOfDay(now), end = new Date(today.getTime() + DAY);
+    switch (state.period) {
+      case "today": return { start: today, end, label: "Today" };
+      case "7d": return { start: new Date(today - 6 * DAY), end, label: "Last 7 days" };
+      case "30d": return { start: new Date(today - 29 * DAY), end, label: "Last 30 days" };
+      case "custom": {
+        const f = state.custom.from ? new Date(state.custom.from + "T00:00") : new Date(today - 29 * DAY);
+        const t = state.custom.to ? new Date(new Date(state.custom.to + "T00:00").getTime() + DAY) : end;
+        return { start: f, end: t, label: `${fmtDay(f)} – ${fmtDay(new Date(t - DAY))}` };
+      }
+      default: return { start: new Date(now.getFullYear(), now.getMonth(), 1), end, label: "This month" };
+    }
+  }
+
+  const paidOf = (o) => (typeof o.amountPaid === "number" ? o.amountPaid : o.payment?.status === "paid" ? o.total : 0);
+  const balanceOf = (o) => Math.max(0, Math.round((o.total - paidOf(o)) * 100) / 100);
+  const counts = (o) => o.status !== "cancelled" && o.status !== "awaiting_payment";
+  const costMap = () => Object.fromEntries(state.content.products.map((p) => [p.slug, p.costPrice]));
+  function orderCost(o, cm) {
+    let missing = false;
+    const c = o.lines.reduce((a, l) => { const unit = l.cost ?? cm[l.slug]; if (unit == null || unit === "") missing = true; return a + (Number(unit) || 0) * l.qty; }, 0);
+    return { c, missing };
+  }
+  function payBadge(o) {
+    if (o.status === "cancelled") return badge("cancelled");
+    if (o.status === "awaiting_payment") return badge("awaiting_payment");
+    const paid = paidOf(o);
+    if (paid >= o.total) return `<em class="st st--done">Paid</em>`;
+    if (paid > 0) return `<em class="st st--wait">Part payment</em>`;
+    return `<em class="st st--new">Unpaid</em>`;
+  }
+  const CHANNEL = { online: "Online", "in-store": "In store", phone: "Phone", whatsapp: "WhatsApp", instagram: "Instagram", other: "Other" };
+
+  function dashboardView() {
+    if (state.mode === "local") return `<p class="empty">The dashboard works once the site runs on Vercel with storage connected.</p>`;
+    if (!state.orders || !state.expenses) return `<p class="empty">Loading your numbers…</p>`;
+    const { start, end, label } = periodRange();
+    const cur = state.content.settings.currency;
+    const M = (n) => oMoney(n, cur);
+    const cm = costMap();
+    const inRange = (iso) => { const t = new Date(iso); return t >= start && t < end; };
+    const sales = state.orders.filter((o) => counts(o) && inRange(o.createdAt));
+    const revenue = sales.reduce((a, o) => a + o.total, 0);
+    let cost = 0, missingCost = false;
+    for (const o of sales) { const r = orderCost(o, cm); cost += r.c; missingCost ||= r.missing; }
+    const gross = revenue - cost;
+    const exps = state.expenses.filter((e) => { const t = new Date(e.date + "T12:00"); return t >= start && t < end; });
+    const expTotal = exps.reduce((a, e) => a + e.amount, 0);
+    const net = gross - expTotal;
+    const owing = state.orders.filter((o) => counts(o) && balanceOf(o) > 0);
+    const outstanding = owing.reduce((a, o) => a + balanceOf(o), 0);
+    const low = state.content.products.filter((p) => p.published !== false && (p.colors || []).some((c) => (p.sizes || []).some((sz) => (parseInt((p.stock || {})[`${c.name}|${sz}`], 10) || 0) <= 2)));
+
+    // Chart buckets
+    const days = Math.max(1, Math.round((end - start) / DAY));
+    const buckets = [];
+    if (days === 1) {
+      for (let h = 0; h < 24; h += 3) buckets.push({ s: new Date(start.getTime() + h * 36e5), e: new Date(start.getTime() + (h + 3) * 36e5), label: `${String(h).padStart(2, "0")}:00` });
+    } else {
+      const size = days <= 10 ? 1 : Math.ceil(days / 9);
+      for (let t = start.getTime(); t < end.getTime(); t += size * DAY) {
+        const s2 = new Date(t), e2 = new Date(Math.min(t + size * DAY, end.getTime()));
+        buckets.push({ s: s2, e: e2, label: size === 1 ? fmtDay(s2) : `${fmtDay(s2)}–${fmtDay(new Date(e2 - DAY))}` });
+      }
+    }
+    for (const b of buckets) {
+      const os = sales.filter((o) => { const t = new Date(o.createdAt); return t >= b.s && t < b.e; });
+      b.rev = os.reduce((a, o) => a + o.total, 0);
+      b.gp = os.reduce((a, o) => a + o.total - orderCost(o, cm).c, 0);
+    }
+    const max = Math.max(1, ...buckets.map((b) => Math.max(b.rev, b.gp)));
+
+    // Top products
+    const top = {};
+    for (const o of sales) for (const l of o.lines) { top[l.slug] = top[l.slug] || { name: l.name, image: l.image, qty: 0, rev: 0 }; top[l.slug].qty += l.qty; top[l.slug].rev += l.price * l.qty; }
+    const topList = Object.values(top).sort((a, b) => b.rev - a.rev).slice(0, 5);
+
+    const latest = state.orders.filter((o) => o.status !== "awaiting_payment").slice(0, 8);
+    const card = (lbl, val, sub, cls = "", act = "") => `<div class="kpi ${cls}" ${act}><span class="kpi__l">${lbl}</span><b class="kpi__v">${val}</b><span class="kpi__s">${sub}</span></div>`;
+
+    return `
+      <div class="dash__head">
+        <div><b>Business overview</b><span class="muted">${esc(label)}</span></div>
+        <div class="chips">
+          ${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "is-on" : ""}" data-period="${k}">${l}</button>`).join("")}
+        </div>
+      </div>
+      ${state.period === "custom" ? `<div class="dash__custom"><label>From <input type="date" data-custom="from" value="${state.custom.from}" /></label><label>To <input type="date" data-custom="to" value="${state.custom.to}" /></label></div>` : ""}
+      <div class="kpis">
+        ${card("Revenue", M(revenue), `${sales.length} ${sales.length === 1 ? "sale" : "sales"}`)}
+        ${card("Gross profit", M(gross), missingCost ? `<span class="warn">Some products have no cost price</span>` : "Sales less product cost", gross >= 0 ? "kpi--pos" : "kpi--neg")}
+        ${card("Expenses", M(expTotal), `${exps.length} recorded for this period`, "", `data-act="goto" data-to="expenses" role="button"`)}
+        ${card("Net profit", M(net), "Gross profit less expenses", "kpi--dark")}
+        ${card("Outstanding", M(outstanding), `${owing.length} customer ${owing.length === 1 ? "balance" : "balances"}`, "", `data-act="goto-owing" role="button"`)}
+        ${card("Low stock", low.length, low.length ? esc(low.slice(0, 2).map((p) => p.name).join(", ")) + (low.length > 2 ? ` +${low.length - 2}` : "") : "Nothing running low", low.length ? "kpi--warn" : "", `data-act="goto" data-to="products" role="button"`)}
+      </div>
+      <div class="dash__row">
+        <section class="panel">
+          <div class="panel__h"><div><span class="kicker">${esc(label)}</span><b>Revenue & profit</b></div><span class="muted small">${buckets.length > 1 ? "Grouped" : ""}</span></div>
+          <div class="chart" style="--n:${buckets.length}">
+            ${buckets.map((b) => `
+              <div class="chart__col" title="${esc(b.label)} — Revenue ${M(b.rev)} · Gross profit ${M(b.gp)}">
+                <div class="chart__bars"><i class="chart__rev" style="height:${(b.rev / max) * 100}%"></i><i class="chart__gp" style="height:${(Math.max(0, b.gp) / max) * 100}%"></i></div>
+                <span>${esc(b.label)}</span>
+              </div>`).join("")}
+          </div>
+          <div class="legend"><span><i class="chart__rev"></i>Revenue</span><span><i class="chart__gp"></i>Gross profit</span></div>
+        </section>
+        <section class="panel">
+          <div class="panel__h"><div><span class="kicker">Products</span><b>Top sellers</b></div><button class="link small" data-act="goto" data-to="products">View products</button></div>
+          ${topList.length ? `<ul class="sellers">${topList.map((t, i) => `
+            <li><span class="sellers__n">${i + 1}</span><span class="thumb">${t.image ? `<img src="${esc(thumbURL(t.image, 80, 106))}" alt="" />` : ""}</span>
+              <span><b>${esc(t.name)}</b><small class="muted">${t.qty} sold</small></span><span>${M(t.rev)}</span></li>`).join("")}</ul>`
+            : `<p class="muted small">No sales in this period yet.</p>`}
+        </section>
+      </div>
+      <section class="panel">
+        <div class="panel__h"><div><span class="kicker">Recent activity</span><b>Latest sales</b></div><button class="link small" data-act="goto" data-to="orders">View all</button></div>
+        <div class="table otable dtable">
+          <div class="tr th"><span>Sale</span><span>Customer</span><span>Channel</span><span>Total</span><span>Balance</span><span>Status</span></div>
+          ${latest.map((o) => `
+            <button class="tr" data-act="open-order" data-id="${esc(o.id)}">
+              <span><b>#${esc(o.id)}</b><small class="muted">${when(o.createdAt)}</small></span>
+              <span>${esc(o.customer.first)} ${esc(o.customer.last)}</span>
+              <span>${esc(CHANNEL[o.channel || "online"] || o.channel)}${o.payment?.provider && !["manual", "none"].includes(o.payment.provider) ? `<small class="muted">${esc(o.payment.provider)}</small>` : ""}</span>
+              <span>${M(o.total)}</span>
+              <span>${M(balanceOf(o))}</span>
+              <span>${payBadge(o)}</span>
+            </button>`).join("") || `<p class="empty">No sales yet. Use “+ New sale” to record one, or wait for your first online order.</p>`}
+        </div>
+      </section>`;
+  }
+
+  /* ----------------------------------------------------------- expenses */
+  async function loadExpenses() {
+    try { const r = await api("/api/expenses"); state.expenses = r.expenses; state.expenseCats = r.categories; }
+    catch (e) { state.expenses = []; if (e.status === 401) return showLogin(); toast(e.message); }
+    if (state.section === "expenses" || state.section === "dashboard") render();
+  }
+
+  function expensesView() {
+    if (state.mode === "local") return `<p class="empty">Expenses work once the site runs on Vercel with storage connected.</p>`;
+    if (!state.expenses) return `<p class="empty">Loading…</p>`;
+    const cur = state.content.settings.currency;
+    const { start, end, label } = periodRange();
+    const list = state.expenses.filter((e) => { const t = new Date(e.date + "T12:00"); return t >= start && t < end; });
+    const byCat = {};
+    for (const e of list) byCat[e.category] = (byCat[e.category] || 0) + e.amount;
+    const total = list.reduce((a, e) => a + e.amount, 0);
+    return `
+      <form class="grp exp-add" data-expense-form>
+        <legend>Record an expense</legend>
+        <div class="exp-add__row">
+          <div class="fld"><label class="lbl">Date</label><input type="date" name="date" value="${new Date().toISOString().slice(0, 10)}" required /></div>
+          <div class="fld"><label class="lbl">Category</label><select name="category">${state.expenseCats.map((c) => `<option>${esc(c)}</option>`).join("")}</select></div>
+          <div class="fld"><label class="lbl">Amount</label><input type="number" name="amount" min="0" step="0.01" required /></div>
+          <div class="fld exp-add__note"><label class="lbl">Note</label><input type="text" name="note" placeholder="e.g. Instagram ads, September" /></div>
+          <button class="btn" type="submit">Add</button>
+        </div>
+      </form>
+      <div class="dash__head">
+        <div><b>${oMoney(total, cur)}</b><span class="muted">${esc(label)} · ${list.length} ${list.length === 1 ? "expense" : "expenses"}</span></div>
+        <div class="chips">${PERIODS.filter(([k]) => k !== "custom").map(([k, l]) => `<button class="chip ${state.period === k ? "is-on" : ""}" data-period="${k}">${l}</button>`).join("")}</div>
+      </div>
+      ${Object.keys(byCat).length ? `<div class="cats">${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => `<span><b>${oMoney(v, cur)}</b>${esc(c)}</span>`).join("")}</div>` : ""}
+      <div class="table">
+        ${list.map((e) => `<div class="tr etr"><span>${new Date(e.date + "T12:00").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</span><span>${esc(e.category)}</span><span class="muted">${esc(e.note)}</span><span><b>${oMoney(e.amount, cur)}</b></span><span class="row-acts"><button class="ic ic--del" data-act="del-expense" data-id="${esc(e.id)}" title="Delete">×</button></span></div>`).join("") || `<p class="empty">No expenses recorded for this period.</p>`}
+      </div>`;
+  }
+
+  /* ----------------------------------------------------------- new sale */
+  function openNewSale() {
+    if (state.mode === "local") return alert("Recording sales needs the admin to run on Vercel with storage connected.");
+    const P = state.content.products;
+    const S = state.content.settings;
+    const cur = S.currency;
+    const dlg = document.createElement("dialog");
+    dlg.className = "lib sale";
+    const itemRow = () => `
+      <div class="sale__item">
+        <select data-si="slug"><option value="">Choose product…</option>${P.map((p) => `<option value="${esc(p.slug)}">${esc(p.name)}</option>`).join("")}</select>
+        <select data-si="color" disabled><option value="">Colour</option></select>
+        <select data-si="size" disabled><option value="">Size</option></select>
+        <input type="number" data-si="qty" min="1" value="1" aria-label="Quantity" />
+        <input type="number" data-si="price" min="0" step="0.01" placeholder="Price" aria-label="Unit price" />
+        <button type="button" class="ic ic--del" data-si-del title="Remove">×</button>
+        <small class="sale__stock muted"></small>
+      </div>`;
+    dlg.innerHTML = `
+      <form class="sale__form" data-sale>
+        <div class="lib__head"><b>New sale</b><button type="button" class="ic" data-close>×</button></div>
+        <div class="lib__body">
+          <div class="grid">
+            <div class="fld"><label class="lbl">Customer name</label><input name="name" placeholder="Walk-in customer" /></div>
+            <div class="fld"><label class="lbl">Phone</label><input name="phone" type="tel" /></div>
+            <div class="fld"><label class="lbl">Email (optional)</label><input name="email" type="email" /></div>
+            <div class="fld"><label class="lbl">Channel</label><select name="channel">${Object.entries(CHANNEL).filter(([k]) => k !== "online").map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div>
+          </div>
+          <div class="fld fld--full"><span class="lbl">Items</span><div class="sale__items" data-items>${itemRow()}</div>
+            <button type="button" class="btn btn--sm btn--ghost" data-add-item style="justify-self:start">+ Add item</button></div>
+          <div class="grid">
+            <div class="fld"><label class="lbl">Delivery</label><select name="shipping"><option value="">Collected / handed over</option>${(S.shippingRates || []).map((r) => `<option value="${esc(r.id)}">${esc(r.label)} — ${oMoney(r.price, cur)}</option>`).join("")}</select></div>
+            <div class="fld"><label class="lbl">Discount</label><input name="discount" type="number" min="0" step="0.01" placeholder="0" /></div>
+            <div class="fld fld--full" data-addr hidden><label class="lbl">Delivery address</label><div class="grid grid--inner"><input name="line1" placeholder="Address" /><input name="city" placeholder="City" /><input name="zip" placeholder="Postcode" /><input name="country" placeholder="Country" /></div></div>
+          </div>
+          <div class="sale__total"><span>Total</span><b data-total>${oMoney(0, cur)}</b></div>
+          <div class="grid">
+            <div class="fld"><label class="lbl">Amount paid now</label><input name="amountPaid" type="number" min="0" step="0.01" data-paid /><small class="help" data-bal></small></div>
+            <div class="fld"><label class="lbl">Paid by</label><select name="method"><option value="cash">Cash</option><option value="transfer">Bank transfer</option><option value="pos">POS / card</option><option value="other">Other</option></select></div>
+            <div class="fld"><label class="lbl">Payment reference (optional)</label><input name="reference" /></div>
+            <div class="fld fld--check"><label class="check"><input type="checkbox" name="handedOver" checked /><span>Customer already has the items</span></label></div>
+            <div class="fld fld--full"><label class="lbl">Notes (optional)</label><input name="notes" /></div>
+          </div>
+          <p class="accent small" data-sale-err></p>
+          <button class="btn btn--full" type="submit">Record sale</button>
+        </div>
+      </form>`;
+    document.body.appendChild(dlg); dlg.showModal();
+    const form = $("[data-sale]", dlg);
+    const close = () => { dlg.close(); dlg.remove(); };
+    let paidTouched = false;
+
+    function recalc() {
+      let sub = 0;
+      $$(".sale__item", dlg).forEach((row) => { sub += (Number($('[data-si="price"]', row).value) || 0) * (Number($('[data-si="qty"]', row).value) || 0); });
+      const rate = (S.shippingRates || []).find((r) => r.id === form.shipping.value);
+      $("[data-addr]", dlg).hidden = !rate;
+      form.handedOver.checked = !rate && form.handedOver.checked;
+      const total = Math.max(0, sub - (Number(form.discount.value) || 0)) + (rate ? Number(rate.price) || 0 : 0);
+      $("[data-total]", dlg).textContent = oMoney(total, cur);
+      if (!paidTouched) form.amountPaid.value = total ? total.toFixed(2) : "";
+      const bal = total - (Number(form.amountPaid.value) || 0);
+      $("[data-bal]", dlg).textContent = bal > 0.001 ? `Balance to collect later: ${oMoney(bal, cur)}` : "";
+      return total;
+    }
+
+    dlg.addEventListener("change", (e) => {
+      const row = e.target.closest(".sale__item");
+      if (row && e.target.dataset.si === "slug") {
+        const p = P.find((x) => x.slug === e.target.value);
+        const c = $('[data-si="color"]', row), sz = $('[data-si="size"]', row);
+        c.innerHTML = p ? p.colors.map((x) => `<option>${esc(x.name)}</option>`).join("") : `<option value="">Colour</option>`;
+        sz.innerHTML = p ? p.sizes.map((x) => `<option>${esc(x)}</option>`).join("") : `<option value="">Size</option>`;
+        c.disabled = sz.disabled = !p;
+        $('[data-si="price"]', row).value = p ? (p.salePrice || p.price) : "";
+      }
+      if (row) {
+        const p = P.find((x) => x.slug === $('[data-si="slug"]', row).value);
+        const left = p ? parseInt((p.stock || {})[`${$('[data-si="color"]', row).value}|${$('[data-si="size"]', row).value}`], 10) || 0 : null;
+        $(".sale__stock", row).textContent = p ? `${left} in stock` : "";
+      }
+      recalc();
+    });
+    dlg.addEventListener("input", (e) => { if (e.target.matches("[data-paid]")) paidTouched = true; recalc(); });
+    dlg.addEventListener("click", (e) => {
+      if (e.target === dlg || e.target.closest("[data-close]")) close();
+      if (e.target.closest("[data-add-item]")) { $("[data-items]", dlg).insertAdjacentHTML("beforeend", itemRow()); }
+      const del = e.target.closest("[data-si-del]");
+      if (del && $$(".sale__item", dlg).length > 1) { del.closest(".sale__item").remove(); recalc(); }
+    });
+
+    async function submit(allowOversell = false) {
+      const d = Object.fromEntries(new FormData(form));
+      const items = $$(".sale__item", dlg).map((row) => ({ slug: $('[data-si="slug"]', row).value, color: $('[data-si="color"]', row).value, size: $('[data-si="size"]', row).value, qty: $('[data-si="qty"]', row).value, price: $('[data-si="price"]', row).value })).filter((x) => x.slug);
+      if (!items.length) { $("[data-sale-err]", dlg).textContent = "Add at least one product."; return; }
+      const btn = $('button[type="submit"]', form); btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const { order } = await api("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+          customer: { name: d.name, phone: d.phone, email: d.email }, channel: d.channel, items, shipping: d.shipping || null, discount: d.discount,
+          address: { line1: d.line1, city: d.city, zip: d.zip, country: d.country }, amountPaid: d.amountPaid === "" ? 0 : d.amountPaid, method: d.method,
+          reference: d.reference, handedOver: !!d.handedOver, notes: d.notes, allowOversell,
+        }) });
+        state.orders = [order, ...(state.orders || [])];
+        const wasDirty = isDirty();
+        for (const l of order.lines) { const p = P.find((x) => x.slug === l.slug); if (p?.stock) p.stock[`${l.color}|${l.size}`] = Math.max(0, (parseInt(p.stock[`${l.color}|${l.size}`], 10) || 0) - l.qty); }
+        state.origStock = Object.fromEntries(state.content.products.map((p) => [p.slug, { ...(p.stock || {}) }]));
+        if (!wasDirty) state.savedJSON = JSON.stringify(state.content);
+        close(); toast(`Sale #${order.id} recorded`); render();
+      } catch (err) {
+        btn.disabled = false; btn.textContent = "Record sale";
+        if (err.data?.stock && confirm(`${err.message}\n\nRecord the sale anyway? Stock will go to zero.`)) return submit(true);
+        if (err.status === 401) { close(); return showLogin(); }
+        $("[data-sale-err]", dlg).textContent = err.message;
+      }
+    }
+    form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
   }
 
   /* ----------------------------------------------------------- payments */
@@ -615,7 +921,7 @@
   function shell(inner) {
     const sec = state.section;
     const title = state.edit ? (state.content.products[state.edit.i]?.name || "New product") : state.order ? `Order #${state.order.id}` : sectionLabel(sec);
-    const noPublish = (sec === "orders" || sec === "payments") && !isDirty();
+    const noPublish = ["orders", "payments", "dashboard", "expenses"].includes(sec) && !isDirty();
     return `
       <div class="layout">
         <aside class="side">
@@ -629,12 +935,12 @@
         <main class="main">
           <header class="top">
             <button class="ic menu" data-act="menu" aria-label="Menu">☰</button>
-            <h1>${esc(title)}</h1>
+            <h1>${sec === "dashboard" && !state.order ? `<small class="kicker">${esc(state.content.settings.name || "")} operations</small>` : ""}${esc(title)}</h1>
             <span class="pill" data-dirty hidden>Unsaved changes</span>
             <div class="top__acts">
               ${state.mode === "local"
                 ? `<span class="pill pill--warn" title="The admin API isn't available here">Local preview</span><button class="btn" data-act="export">Download content.json</button>`
-                : noPublish ? "" : `<button class="btn" data-act="save">${state.saving ? "Publishing…" : "Save & publish"}</button>`}
+                : noPublish ? (sec === "dashboard" || sec === "orders" ? `<button class="btn" data-act="new-sale">+ New sale</button>` : "") : `<button class="btn" data-act="save">${state.saving ? "Publishing…" : "Save & publish"}</button>`}
             </div>
           </header>
           ${state.mode === "live" && state.auth.storage === false ? `<div class="notice">Storage isn't connected yet, so changes can't be published. In Vercel open <b>Storage → Create → Blob</b>, connect it to this project, then redeploy.</div>` : ""}
@@ -652,6 +958,8 @@
     const s = state.section;
     if (s === "products") inner = state.edit ? productEditor(state.edit.i) : productsList();
     else if (s === "orders") inner = state.order ? orderDetail(state.order) : ordersView();
+    else if (s === "dashboard") inner = dashboardView();
+    else if (s === "expenses") inner = expensesView();
     else if (s === "payments") inner = paymentsView();
     else if (s === "info") inner = infoEditor();
     else if (s === "backups") inner = backupsView();
@@ -663,7 +971,8 @@
     scrollTo(0, winScroll);
     updateDirty();
     if (s === "backups") loadBackups();
-    if (s === "orders" && !state.orders && state.mode === "live") loadOrders();
+    if ((s === "orders" || s === "dashboard") && !state.orders && state.mode === "live") loadOrders();
+    if ((s === "expenses" || s === "dashboard") && !state.expenses && state.mode === "live") loadExpenses();
     if (s === "payments" && !state.payments && state.mode === "live") loadPayments();
   }
 
@@ -736,8 +1045,18 @@
     if (path.match(/^products\.\d+\.slug$/)) state.autoSlug = false;
   });
 
+  app.addEventListener("submit", async (e) => {
+    const f = e.target.closest("[data-expense-form]");
+    if (!f) return;
+    e.preventDefault();
+    const d = Object.fromEntries(new FormData(f));
+    try { state.expenses = (await api("/api/expenses", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(d) })).expenses; toast("Expense added"); render(); }
+    catch (err) { if (err.status === 401) return showLogin(); alert(err.message); }
+  });
+
   app.addEventListener("change", (e) => {
     const el = e.target;
+    if (el.matches("[data-custom]")) { state.custom[el.dataset.custom] = el.value; render(); return; }
     if (el.matches("[data-import]")) return importFile(el.files[0]);
     if (el.hasAttribute("data-rerender") || el.type === "color") render();
   });
@@ -770,6 +1089,8 @@
       render(); return;
     }
 
+    const pr = e.target.closest("[data-period]");
+    if (pr) { state.period = pr.dataset.period; localStorage.setItem("strata.admin.period", state.period); render(); return; }
     const of = e.target.closest("[data-ofilter]");
     if (of) { state.orderFilter = of.dataset.ofilter; render(); return; }
     if (e.target.closest("[data-pprov]")) { $$(".choice").forEach((c) => c.classList.toggle("is-on", !!$("input:checked", c))); return; }
@@ -780,7 +1101,16 @@
     const P = state.content.products;
     switch (act) {
       case "menu": document.body.classList.toggle("nav-open"); break;
-      case "open-order": state.order = state.orders.find((o) => o.id === a.dataset.id); render(); scrollTo(0, 0); break;
+      case "open-order": state.order = state.orders.find((o) => o.id === a.dataset.id); state.section = "orders"; render(); scrollTo(0, 0); break;
+      case "new-sale": openNewSale(); break;
+      case "goto": state.section = a.dataset.to; state.edit = null; state.order = null; render(); scrollTo(0, 0); break;
+      case "goto-owing": state.section = "orders"; state.order = null; state.orderFilter = "owing"; render(); break;
+      case "del-expense": if (confirm("Delete this expense?")) { try { state.expenses = (await api(`/api/expenses?id=${encodeURIComponent(a.dataset.id)}`, { method: "DELETE" })).expenses; render(); } catch (err) { alert(err.message); } } break;
+      case "record-payment": {
+        const v = (k) => $(`[data-rp="${k}"]`).value;
+        await patchOrder({ recordPayment: { amount: v("amount"), method: v("method"), reference: v("reference") } });
+        break;
+      }
       case "orders-back": state.order = null; render(); break;
       case "orders-refresh": state.orders = null; render(); break;
       case "orders-csv": ordersCSV(); break;
@@ -992,7 +1322,7 @@
     state.content.pages = state.content.pages || {};
     state.savedJSON = JSON.stringify(content);
     snapshotStock();
-    if (!sectionLabel(state.section)) state.section = "orders";
+    if (!sectionLabel(state.section)) state.section = "dashboard";
     render();
   }
 

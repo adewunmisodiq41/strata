@@ -3,7 +3,7 @@
 // GET  /api/content?backups=1  → list of previous saves (admin only)
 // PUT  /api/content            → save + publish (admin only)
 import { list } from "@vercel/blob";
-import { json, isAuthed, hasStorage, readContent, validateContent, writeContent, syncInventory } from "./_lib.js";
+import { json, isAuthed, hasStorage, readContent, validateContent, writeContent, syncInventory, readCosts, writeCosts } from "./_lib.js";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -23,6 +23,13 @@ export async function GET(request) {
 
   const { content, source } = await readContent();
   const fresh = url.searchParams.has("fresh");
+  // Cost prices are private: only the signed-in admin gets them.
+  if (fresh && isAuthed(request)) {
+    const costs = await readCosts();
+    for (const p of content.products || []) if (costs[p.slug] != null) p.costPrice = costs[p.slug];
+  } else {
+    for (const p of content.products || []) delete p.costPrice;
+  }
   return json(content, 200, {
     "x-content-source": source,
     "cache-control": fresh ? "no-store" : "public, max-age=0, s-maxage=20, stale-while-revalidate=600",
@@ -46,6 +53,14 @@ export async function PUT(request) {
   if (errors.length) return json({ error: "Please fix these before publishing:", errors }, 422);
 
   content.updatedAt = new Date().toISOString();
+  // Move cost prices into encrypted storage before the content file (which is public) is written.
+  const costs = {};
+  for (const p of content.products) {
+    const c = Number(p.costPrice);
+    if (p.costPrice !== null && p.costPrice !== "" && p.costPrice !== undefined && c >= 0) costs[p.slug] = c;
+    delete p.costPrice;
+  }
+  await writeCosts(costs);
   const inventory = await syncInventory(content, stockChanges);
   for (const p of content.products) p.stock = inventory[p.slug] || p.stock;
   await writeContent(content);

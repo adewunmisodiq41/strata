@@ -32,6 +32,26 @@ Press **Save & publish** and the live site updates within about a minute. A copy
 
 Changing `ADMIN_PASSWORD` signs out every open admin session.
 
+## Dashboard, sales & expenses
+
+**Admin → Dashboard** is the admin's home screen. For any period (today, 7 days, 30 days, this month, or custom dates) it shows:
+
+- **Revenue:** total sales in the period
+- **Gross profit:** revenue less product cost
+- **Expenses**
+- **Net profit:** gross profit less expenses
+- **Outstanding:** customer balances still owed
+- **Low stock:** products with a size or colour at 2 or fewer
+
+Below the cards are a revenue and profit chart, the top-selling products, and the latest sales with balance and payment status.
+
+- **Cost price:** set on each product. It's stored encrypted and removed from the public content file, so customers never see your margins. Gross profit uses the cost at the time of sale.
+- **+ New sale:** records in-store, phone, WhatsApp or Instagram sales. You can override prices, add a discount and delivery, and take part payment. Stock is deducted straight away.
+- **Record payment:** on any order with a balance, adds cash, transfer or POS payments until it's settled.
+- **Admin → Expenses:** records costs by category, such as marketing, rent, packaging and shipping. Expenses are stored encrypted.
+
+Revenue counts every order except cancelled ones and online orders that were never paid. The dashboard reads up to the 300 most recent orders.
+
 ## Orders & payments
 
 **Admin → Payments** sets how customers pay:
@@ -65,7 +85,8 @@ index.html              App shell: announcement, header, mobile menu, cart drawe
 data/content.json       Default content (used until the first publish from /admin)
 admin/                  The admin editor (index.html, admin.js, admin.css)
 api/                    Vercel functions: auth, content (load / publish / backups), upload (photos),
-                        checkout, checkout-return, order-status, orders, payments, webhooks/paystack, webhooks/stripe
+                        checkout, checkout-return, order-status, orders (incl. manual sales), expenses, payments,
+                        webhooks/paystack, webhooks/stripe
 assets/css/theme.css    Default colours, type, spacing and motion (colours can be overridden from /admin)
 assets/css/styles.css   Components + responsive layouts
 assets/js/boot.js       Loads live content (/api/content → data/content.json fallback), applies the theme

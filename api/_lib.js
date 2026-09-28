@@ -9,6 +9,8 @@ export const SESSION_HOURS = 12;
 export const CONTENT_PATH = "content.json";
 const INVENTORY_PATH = "inventory.json";
 const PAYMENTS_PATH = "secure/payments.enc";
+const COSTS_PATH = "secure/costs.enc";
+const EXPENSES_PATH = "secure/expenses.enc";
 
 export const hasStorage = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 export const hasPassword = () => Boolean(process.env.ADMIN_PASSWORD);
@@ -185,6 +187,19 @@ export async function readPayments() {
 export async function writePayments(settings) {
   await writeBlob(PAYMENTS_PATH, seal(settings), "text/plain", 60);
 }
+/* ---------- Private business data (cost prices, expenses) ---------- */
+async function readSealed(path, fallback) {
+  if (!hasStorage()) return fallback;
+  const text = await readBlobText(path);
+  if (!text) return fallback;
+  try { return unseal(text); } catch (e) { console.error("unseal", path, e.message); return fallback; }
+}
+/** { [productSlug]: costPrice } — kept out of the public content file. */
+export const readCosts = () => readSealed(COSTS_PATH, {});
+export const writeCosts = (costs) => writeBlob(COSTS_PATH, seal(costs), "text/plain", 60);
+export const readExpenses = () => readSealed(EXPENSES_PATH, []);
+export const writeExpenses = (list) => writeBlob(EXPENSES_PATH, seal(list), "text/plain", 60);
+
 export const keyMode = (k) => (!k ? null : /_test_/.test(k) ? "test" : "live");
 export const mask = (k) => (k ? `${k.slice(0, 8)}…${k.slice(-4)}` : "");
 
@@ -232,10 +247,21 @@ export async function markPaid(id, payment) {
   if (!order) return null;
   if (order.payment?.status === "paid") return order;
   order.payment = { ...order.payment, ...payment, status: "paid", paidAt: new Date().toISOString() };
-  if (order.status === "awaiting_payment") order.status = "paid";
+  const already = paidSoFar(order);
+  if (already < order.total) {
+    order.payments = [...(order.payments || []), { amount: order.total - already, method: payment.provider, reference: payment.reference || "", at: new Date().toISOString() }];
+  }
+  order.amountPaid = order.total;
+  if (order.status === "awaiting_payment" || order.status === "new") order.status = "paid";
   addHistory(order, "paid", `Payment confirmed by ${payment.provider}`);
   if (!order.stockDeducted) { await adjustInventory(order.lines, -1); order.stockDeducted = true; }
   return saveOrder(order);
+}
+
+/** How much of an order has been paid (supports part payments). */
+export function paidSoFar(o) {
+  if (typeof o.amountPaid === "number") return o.amountPaid;
+  return o.payment?.status === "paid" ? o.total : 0;
 }
 
 /** Smallest currency unit (kobo, cents…). All supported currencies use 2 decimals. */
