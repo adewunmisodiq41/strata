@@ -108,7 +108,60 @@
       "contactTitle": "Get in Touch",
       "contactIntro": "Questions about an order, sizing or a collaboration? Send us a note.",
       "newsletterTitle": "Be first to know",
-      "newsletterText": "Get early access to new drops, exclusive releases and selected offers."
+      "newsletterText": "Get early access to new drops, exclusive releases and selected offers.",
+      "firstScreen": "",
+      "rail": [
+        {
+          "image": "/assets/rail/black-jacket.webp",
+          "product": "axis-tailored-blazer",
+          "color": "Black",
+          "label": ""
+        },
+        {
+          "image": "/assets/rail/white-tee.webp",
+          "product": "base-heavyweight-tee",
+          "color": "Bone",
+          "label": ""
+        },
+        {
+          "image": "/assets/rail/black-tee.webp",
+          "product": "signal-oversized-tee",
+          "color": "Black",
+          "label": ""
+        },
+        {
+          "image": "/assets/rail/charcoal-tee.webp",
+          "product": "base-heavyweight-tee",
+          "color": "Ash",
+          "label": ""
+        },
+        {
+          "image": "/assets/rail/stone-tee.webp",
+          "product": "signal-oversized-tee",
+          "color": "Bone",
+          "label": ""
+        },
+        {
+          "image": "/assets/rail/black-longsleeve.webp",
+          "product": "contour-rib-knit",
+          "color": "Black",
+          "label": ""
+        },
+        {
+          "image": "/assets/rail/navy-tee.webp",
+          "product": "base-heavyweight-tee",
+          "color": "Black",
+          "label": ""
+        }
+      ],
+      "tickerItems": [
+        "New designs daily",
+        "Subscribe to our newsletter"
+      ],
+      "stageCta": {
+        "label": "See availability",
+        "href": "#/shop"
+      }
     },
     "about": {
       "kicker": "About STRATA — Est. 2021",

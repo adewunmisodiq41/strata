@@ -230,7 +230,18 @@
       fields: [F("image", "Photo", "image"), F("caption", "Caption")],
     })],
     home: [
-      group("Hero", [half("heroKicker", "Small label (left)"), half("heroKicker2", "Small label 2"), F("heroMeta", "Small label (right)"), F("heroTitle", "Headline", "textarea", { rows: 3, help: "Each line becomes one line of the headline." }), F("heroSub", "Supporting text", "textarea", { rows: 2 }), F("heroImage", "Desktop image (landscape)", "image"), F("heroImageMobile", "Mobile image (portrait)", "image"), F("heroAlt", "Image description (for accessibility)"),
+      group("First screen", [
+        F("firstScreen", "What visitors see first", "select", { options: [["", "Clothes rail — garments turn as you hover"], ["hero", "Campaign image with headline"]] }),
+        F("rail", "Garments on the rail", "repeater", {
+          itemLabel: "garment", thumb: "image", title: (r) => `${(state.content.products.find((p) => p.slug === r.product) || {}).name || "Choose a product"}${r.color ? ` — ${r.color}` : ""}`,
+          help: "Use cut-out photos (transparent PNG/WebP, or on pure white) of one garment on a hanger, hook at the top centre. 7–12 garments look best.",
+          newItem: () => ({ image: "", product: state.content.products[0]?.slug || "", color: "", label: "" }),
+          fields: [F("image", "Cut-out photo", "image"), half("product", "Links to product", "select", { options: opt.products }), half("color", "Colour", "text", { help: "Pre-selects this colour on the product page." }), F("label", "Name shown on hover (optional)", "text", { help: "Leave empty to use “Product — Colour”." })],
+        }),
+        F("tickerItems", "Scrolling ticker", "lines", { rows: 2, help: "One message per line." }),
+        F("stageCta", "Button under the rail", "object", { fields: [half("label", "Text"), half("href", "Link", "text", { placeholder: "#/shop" })] }),
+      ], { help: "The first thing visitors see on the homepage." }),
+      group("Campaign image (if chosen above)", [half("heroKicker", "Small label (left)"), half("heroKicker2", "Small label 2"), F("heroMeta", "Small label (right)"), F("heroTitle", "Headline", "textarea", { rows: 3, help: "Each line becomes one line of the headline." }), F("heroSub", "Supporting text", "textarea", { rows: 2 }), F("heroImage", "Desktop image (landscape)", "image"), F("heroImageMobile", "Mobile image (portrait)", "image"), F("heroAlt", "Image description (for accessibility)"),
         F("ctaPrimary", "Main button", "object", { fields: [half("label", "Text"), half("href", "Link", "text", { placeholder: "#/shop?new=1" })] }),
         F("ctaSecondary", "Second button", "object", { fields: [half("label", "Text"), half("href", "Link")] })]),
       group("Brand statement", [F("statementLabel", "Small label"), F("statementTitle", "Headline", "textarea", { rows: 2 }), F("statementAccent", "Highlighted word(s)", "text", { help: "Shown in the accent colour at the end of the headline." }), F("statementLead", "Intro paragraph", "textarea"), F("statementBody", "Paragraph", "textarea", { rows: 4 }), F("statementImage", "Image", "image"),
@@ -1219,10 +1230,12 @@
     const c = document.createElement("canvas");
     c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     const ctx = c.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    const alpha = file.type === "image/png" || file.type === "image/webp"; // keep cut-outs transparent
+    if (!alpha) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); }
     ctx.drawImage(bmp, 0, 0, c.width, c.height);
-    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.86));
-    return { blob, type: "image/jpeg" };
+    const type = alpha ? "image/webp" : "image/jpeg";
+    const blob = await new Promise((r) => c.toBlob(r, type, alpha ? 0.9 : 0.86));
+    return { blob, type: blob.type || type };
   }
 
   function pickAndUpload(path, append) {
@@ -1320,6 +1333,14 @@
     else content = await (await fetch("/data/content.json", { cache: "no-store" })).json();
     state.content = content;
     state.content.pages = state.content.pages || {};
+    const home = (state.content.pages.home = state.content.pages.home || {});
+    if (!Array.isArray(home.rail) || !home.rail.length) home.rail = [
+      ["black-jacket", "axis-tailored-blazer", "Black"], ["white-tee", "base-heavyweight-tee", "Bone"], ["black-tee", "signal-oversized-tee", "Black"],
+      ["charcoal-tee", "base-heavyweight-tee", "Ash"], ["stone-tee", "signal-oversized-tee", "Bone"], ["black-longsleeve", "contour-rib-knit", "Black"], ["navy-tee", "base-heavyweight-tee", "Black"],
+    ].map(([img, product, color]) => ({ image: `/assets/rail/${img}.webp`, product, color, label: "" }));
+    if (!home.tickerItems) home.tickerItems = ["New designs daily", "Subscribe to our newsletter"];
+    if (!home.stageCta) home.stageCta = { label: "See availability", href: "#/shop" };
+    if (home.firstScreen === undefined) home.firstScreen = "";
     state.savedJSON = JSON.stringify(content);
     snapshotStock();
     if (!sectionLabel(state.section)) state.section = "dashboard";

@@ -381,7 +381,7 @@
 
   function newsletterSection() {
     return `
-    <section class="newsletter">
+    <section class="newsletter" id="newsletter">
       <div class="wrap newsletter__inner" data-reveal>
         <p class="label">Newsletter</p>
         <h2 class="display newsletter__title">${esc(H().newsletterTitle || "Be first to know")}</h2>
@@ -402,13 +402,185 @@
   /* ---------------------------------------------------------------------- */
   const views = {};
 
+  /* ---------------------------------------------------------------------- */
+  /* Rail — the first screen: garments on a clothes rail                    */
+  /* ---------------------------------------------------------------------- */
+  const DEFAULT_RAIL = [
+    { image: "/assets/rail/black-jacket.webp", product: "axis-tailored-blazer", color: "Black" },
+    { image: "/assets/rail/white-tee.webp", product: "base-heavyweight-tee", color: "Bone" },
+    { image: "/assets/rail/black-tee.webp", product: "signal-oversized-tee", color: "Black" },
+    { image: "/assets/rail/charcoal-tee.webp", product: "base-heavyweight-tee", color: "Ash" },
+    { image: "/assets/rail/stone-tee.webp", product: "signal-oversized-tee", color: "Bone" },
+    { image: "/assets/rail/black-longsleeve.webp", product: "contour-rib-knit", color: "Black" },
+    { image: "/assets/rail/navy-tee.webp", product: "base-heavyweight-tee", color: "Black" },
+  ];
+  const DEFAULT_TICKER = ["New designs daily", "Subscribe to our newsletter"];
+
+  function railItems() {
+    const list = (H().rail && H().rail.length ? H().rail : DEFAULT_RAIL).filter((r) => r.image);
+    return list.map((r) => {
+      const p = S.product(r.product);
+      return { ...r, p, name: r.label || (p ? `${p.name}${r.color ? ` — ${r.color}` : ""}` : "") };
+    }).filter((r) => r.name).slice(0, 14);
+  }
+  const railSrc = (img, w) => (I.isExternal(img) && /^https?:/.test(img) ? I.src(img, w) : img);
+
+  function railStage() {
+    const items = railItems();
+    const h = H();
+    const ticker = (h.tickerItems && h.tickerItems.length ? h.tickerItems : DEFAULT_TICKER).map(esc);
+    const tickerRun = Array(8).fill(ticker.map((t) => `<span>${t}</span><i></i>`).join("")).join("");
+    const cta = h.stageCta?.label ? h.stageCta : { label: "See availability", href: "#/shop" };
+    return `
+    <section class="rs" data-rs aria-label="${esc(B.name)} — the collection on the rail">
+      <nav class="rs__nav">
+        <div class="rs__left"><a href="#/about" class="rs__link">About</a><a href="#/shop" class="rs__link">Shop</a></div>
+        <a href="#/" class="rs__logo" aria-label="${esc(B.name)} home">${esc(B.name)}</a>
+        <div class="rs__right"><a href="#/contact" class="rs__link">Contact</a><button class="rs__link rs__bag" data-open-cart>Bag <span data-cart-count>${S.count}</span></button></div>
+      </nav>
+      <div class="rs__stage" data-rs-stage>
+        <div class="rs__rail" data-rs-rail>
+          <div class="rs__bar" aria-hidden="true"><i class="rs__cap rs__cap--l"></i><i class="rs__cap rs__cap--r"></i></div>
+          <ul class="rs__items" data-rs-items style="--n:${items.length}">
+            ${items.map((it, i) => `
+              <li class="rs__item" style="--i:${i};--tilt:${[-4, 3, -2, 5, -3, 2, -5, 4, -1, 3][i % 10]}deg">
+                <button class="rs__btn" data-rs-i="${i}" aria-label="${esc(it.name)} — view">
+                  <span class="rs__hook" aria-hidden="true"></span>
+                  <span class="rs__g"><img class="ext" src="${esc(railSrc(it.image, 640))}" alt="${esc(it.name)}" draggable="false" decoding="async" /></span>
+                </button>
+              </li>`).join("")}
+          </ul>
+        </div>
+        <p class="rs__label" data-rs-label aria-live="polite"></p>
+      </div>
+      <a class="rs__cta" href="${esc(cta.href)}">${esc(cta.label)}</a>
+      <a class="rs__ticker" href="#newsletter" data-rs-news aria-label="${ticker.join(", ")}"><span class="rs__run">${tickerRun}</span></a>
+
+      <div class="rs__detail" data-rs-detail role="dialog" aria-modal="true" aria-label="Product" hidden>
+        <button class="rs__close rs__link" data-rs-close>Close</button>
+        <button class="rs__arrow rs__arrow--prev" data-rs-step="-1" aria-label="Previous">${ICON.arrowL}</button>
+        <figure class="rs__big" data-rs-big><span class="rs__hook" aria-hidden="true"></span><img class="ext" alt="" draggable="false" /></figure>
+        <button class="rs__arrow rs__arrow--next" data-rs-step="1" aria-label="Next">${ICON.arrow}</button>
+        <div class="rs__info">
+          <p class="rs__count" data-rs-count></p>
+          <p class="rs__name" data-rs-name></p>
+          <p class="rs__price" data-rs-price></p>
+          <a class="rs__cta rs__cta--in" data-rs-go href="#/shop">See availability</a>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function mountRail(root) {
+    const el = $("[data-rs]", root);
+    if (!el) return () => {};
+    const items = railItems();
+    const btns = $$("[data-rs-i]", el);
+    const stage = $("[data-rs-stage]", el);
+    const label = $("[data-rs-label]", el), detail = $("[data-rs-detail]", el);
+    const big = $("[data-rs-big] img", el);
+    let active = -1, open = -1, leaveT;
+
+    const placeLabel = (i) => {
+      const r = btns[i].getBoundingClientRect(), s = stage.getBoundingClientRect();
+      label.style.setProperty("--x", `${r.left + r.width / 2 - s.left}px`);
+    };
+    function setActive(i) {
+      clearTimeout(leaveT);
+      if (i === active) return;
+      active = i;
+      btns.forEach((b, j) => b.parentElement.classList.toggle("is-on", j === i));
+      el.classList.toggle("has-on", i >= 0);
+      if (i >= 0) { label.textContent = items[i].name; placeLabel(i); label.classList.add("is-in"); }
+      else label.classList.remove("is-in");
+    }
+    // Keep the label centred while the slot widens
+    btns.forEach((b, i) => b.parentElement.addEventListener("transitionend", (e) => { if (e.propertyName === "flex-basis" && i === active) placeLabel(i); }));
+
+    // Mouse: hover turns a garment. Touch: first tap turns it, second tap opens it.
+    let lastPointer = "mouse";
+    btns.forEach((b, i) => {
+      b.addEventListener("pointerdown", (e) => { lastPointer = e.pointerType; });
+      b.addEventListener("pointerenter", (e) => { if (e.pointerType !== "touch") setActive(i); });
+      b.addEventListener("focus", () => { if (lastPointer !== "touch") setActive(i); });
+      b.addEventListener("click", () => {
+        if (lastPointer === "touch" && active !== i) return setActive(i);
+        showDetail(i);
+      });
+    });
+    $("[data-rs-items]", el).addEventListener("pointerleave", (e) => { if (e.pointerType !== "touch") leaveT = setTimeout(() => setActive(-1), 120); });
+
+    function fill(i) {
+      const it = items[i], n = items.length;
+      big.src = railSrc(it.image, 1200); big.alt = it.name;
+      $("[data-rs-count]", el).textContent = `${String(i + 1).padStart(2, "0")} / ${String(n).padStart(2, "0")}`;
+      $("[data-rs-name]", el).textContent = it.name;
+      $("[data-rs-price]", el).innerHTML = it.p ? priceHTML(it.p) : "";
+      $("[data-rs-go]", el).href = it.p ? `#/product/${it.p.slug}${it.color ? `?color=${encodeURIComponent(it.color)}` : ""}` : "#/shop";
+    }
+    function showDetail(i, dir = 0) {
+      const n = items.length;
+      i = (i + n) % n;
+      const fig = $("[data-rs-big]", el);
+      if (open < 0) {
+        fill(i); detail.hidden = false; el.classList.add("is-open");
+        requestAnimationFrame(() => requestAnimationFrame(() => detail.classList.add("is-in")));
+        setTimeout(() => $("[data-rs-close]", el).focus({ preventScroll: true }), 60);
+      } else {
+        fig.style.setProperty("--dir", dir || 1);
+        fig.classList.remove("is-swap-in"); fig.classList.add("is-swap-out");
+        setTimeout(() => { fill(i); fig.classList.remove("is-swap-out"); void fig.offsetWidth; fig.classList.add("is-swap-in"); }, 200);
+      }
+      open = i;
+    }
+    function hideDetail() {
+      if (open < 0) return;
+      detail.classList.remove("is-in"); el.classList.remove("is-open");
+      const was = open; open = -1;
+      setTimeout(() => { if (open < 0) detail.hidden = true; }, 450);
+      btns[was]?.focus({ preventScroll: true });
+    }
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("[data-rs-close]")) hideDetail();
+      const st = e.target.closest("[data-rs-step]");
+      if (st) showDetail(open + +st.dataset.rsStep, +st.dataset.rsStep);
+      if (e.target === detail) hideDetail();
+      if (e.target.closest("[data-rs-go]")) hideDetail();
+      if (e.target.closest("[data-rs-news]")) { e.preventDefault(); $("#newsletter")?.scrollIntoView({ behavior: "smooth" }); }
+    });
+    const onKey = (e) => {
+      if (open < 0) return;
+      if (e.key === "Escape") { e.stopPropagation(); hideDetail(); }
+      if (e.key === "ArrowRight") showDetail(open + 1, 1);
+      if (e.key === "ArrowLeft") showDetail(open - 1, -1);
+    };
+    document.addEventListener("keydown", onKey, true);
+    let sx = null; // swipe between garments in the detail view
+    detail.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; }, { passive: true });
+    detail.addEventListener("touchend", (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) showDetail(open + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1); sx = null; });
+
+    // Intro: a wave of garments turning to face you, once per visit
+    let seen = true;
+    try { seen = !!sessionStorage.getItem("strata.railIntro"); sessionStorage.setItem("strata.railIntro", "1"); } catch {}
+    if (!reduceMotion && !seen) {
+      el.classList.add("is-intro");
+      setTimeout(() => el.classList.remove("is-intro"), 1500 + items.length * 110);
+    }
+
+    // The regular store header slides in once the rail has scrolled away
+    const io2 = new IntersectionObserver(([en]) => document.body.classList.toggle("past-stage", !en.isIntersecting), { rootMargin: "-80px 0px 0px 0px" });
+    io2.observe(el);
+    return () => { document.removeEventListener("keydown", onKey, true); io2.disconnect(); document.body.classList.remove("past-stage"); };
+  }
+
   views.home = () => ({
     title: `${B.name} — Premium Streetwear & Modern Essentials`,
     description: B.description,
     image: I.src("photo-1559356157-f3315daa41c7", 1200, 630),
-    html: hero() + statement() + categoriesSection() + dropSection() + featuredSection() + storiesSection() + faqSection() + socialSection() + contactSection() + newsletterSection(),
+    html: (H().firstScreen === "hero" ? hero() : railStage()) + statement() + categoriesSection() + dropSection() + featuredSection() + storiesSection() + faqSection() + socialSection() + contactSection() + newsletterSection(),
     ld: { "@context": "https://schema.org", "@type": "WebSite", name: B.name, url: B.url, potentialAction: { "@type": "SearchAction", target: `${B.url}/#/shop?q={query}`, "query-input": "required name=query" } },
     mount(root) {
+      this._unrail = mountRail(root);
       $$("[data-feat]", root).forEach((btn) => btn.addEventListener("click", () => {
         $$("[data-feat]", root).forEach((b) => b.setAttribute("aria-selected", b === btn));
         const g = $("[data-feat-grid]", root);
@@ -416,6 +588,7 @@
         setTimeout(() => { g.innerHTML = grid(featuredList(btn.dataset.feat)); g.classList.remove("is-swapping"); observe(g); }, 200);
       }));
     },
+    unmount() { this._unrail?.(); },
   });
 
   /* ------------------------------ SHOP ---------------------------------- */
@@ -621,7 +794,7 @@
   }
 
   /* ----------------------------- PRODUCT -------------------------------- */
-  views.product = ([slug]) => {
+  views.product = ([slug], query) => {
     const p = S.product(slug);
     if (!p) return views.notFound();
     const col = collectionBySlug(p.collection);
@@ -657,9 +830,9 @@
             <p class="pinfo__desc">${esc(p.description)}</p>
             <form class="pform" data-pform novalidate>
               <fieldset class="opt">
-                <legend class="opt__legend"><span class="label">Colour</span><span class="opt__val" data-color-label>${p.colors[0].name}</span></legend>
+                <legend class="opt__legend"><span class="label">Colour</span><span class="opt__val" data-color-label>${esc((p.colors.find((x) => x.name === query?.get("color")) || p.colors[0]).name)}</span></legend>
                 <div class="swatches">
-                  ${p.colors.map((c, i) => `<label class="swatch" title="${esc(c.name)}"><input type="radio" name="color" value="${esc(c.name)}" ${i === 0 ? "checked" : ""} /><i style="--sw:${c.hex}"></i><span class="sr-only">${esc(c.name)}</span></label>`).join("")}
+                  ${p.colors.map((c, i) => `<label class="swatch" title="${esc(c.name)}"><input type="radio" name="color" value="${esc(c.name)}" ${(p.colors.some((x) => x.name === query?.get("color")) ? c.name === query.get("color") : i === 0) ? "checked" : ""} /><i style="--sw:${c.hex}"></i><span class="sr-only">${esc(c.name)}</span></label>`).join("")}
                 </div>
               </fieldset>
               <fieldset class="opt">
